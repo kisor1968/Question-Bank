@@ -21,19 +21,16 @@ def get_drive_service():
     """Initializes Google Drive service using Streamlit Secrets or local credentials file."""
     try:
         if "gcp_service_account" in st.secrets:
-            # Reads from Streamlit Cloud Secrets dashboard
             service_account_info = dict(st.secrets["gcp_service_account"])
             creds = service_account.Credentials.from_service_account_info(
                 service_account_info, scopes=SCOPES
             )
         elif os.path.exists('credentials.json'):
-            # Fallback for local testing if credentials.json is present
             creds = service_account.Credentials.from_service_account_file(
                 'credentials.json', scopes=SCOPES
             )
         else:
             return None
-        
         return build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Google Drive Authentication Error: {e}")
@@ -47,9 +44,7 @@ def upload_to_google_drive(file_path, file_name):
         return None
         
     try:
-        # Get Folder ID from Streamlit Secrets or fallback
-        folder_id = st.secrets.get("google_drive", {}).get("folder_id", "YOUR_FOLDER_ID_HERE")
-        
+        folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
         file_metadata = {
             'name': file_name,
             'parents': [folder_id]
@@ -60,7 +55,6 @@ def upload_to_google_drive(file_path, file_name):
             body=file_metadata, media_body=media, fields='id, webViewLink'
         ).execute()
         
-        # Make file viewable to anyone with the link
         file_id = file.get('id')
         service.permissions().create(
             fileId=file_id,
@@ -126,8 +120,8 @@ def fetch_questions(course_type="All", dept="All", sem="All", diff="All", search
         query += " AND difficulty = ?"
         params.append(diff)
     if search_query:
-        query += " AND question_text LIKE ?"
-        params.append(f"%{search_query}%")
+        query += " AND (question_text LIKE ? OR paper_code LIKE ?)"
+        params.extend([f"%{search_query}%", f"%{search_query}%"])
         
     df = pd.read_sql_query(query, conn, params=params)
     conn.close()
@@ -143,7 +137,6 @@ st.set_page_config(
 st.title("🎓 Prabhu Jagatbandhu College Question Bank & Archive")
 st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs) stored in official Google Drive.")
 
-# --- LIST OF DEPARTMENTS ---
 PJC_DEPARTMENTS = [
     "Bengali", "English", "Sanskrit", "History", "Political Science", 
     "Philosophy", "Education", "Sociology", "Economics", "Geography", 
@@ -162,8 +155,6 @@ app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍�
 if app_mode == "🔍 Search & Browse Bank":
     st.header("Search & Filter Question Bank")
     
-    all_data = fetch_questions()
-    
     f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns(5)
     
     with f_col1:
@@ -175,7 +166,7 @@ if app_mode == "🔍 Search & Browse Bank":
     with f_col4:
         selected_diff = st.selectbox("Difficulty", ["All", "Easy", "Medium", "Hard"])
     with f_col5:
-        search_text = st.text_input("Keyword Search", placeholder="Search text...")
+        search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
         
     filtered_df = fetch_questions(
         course_type=selected_course_type, 
@@ -195,8 +186,8 @@ if app_mode == "🔍 Search & Browse Bank":
             with st.container(border=True):
                 col_q1, col_q2 = st.columns([4, 1])
                 with col_q1:
-                    st.markdown(f"**Q{row['id']}:** {row['question_text']}")
-                    st.caption(f"🎓 **Type:** `{row['course_type']}` | 📂 **Dept:** {row['department']} | **Paper Code:** {row['paper_code']} | **Unit:** {row['unit_module']} | **Source:** {row['source_tag']}")
+                    st.markdown(f"**Paper / Title:** {row['question_text']}")
+                    st.caption(f"🎓 **Type:** `{row['course_type']}` | 📂 **Dept:** {row['department']} | **Paper Code:** `{row['paper_code']}` | **Semester:** {row['semester']} | **Unit:** {row['unit_module']} | **Source:** {row['source_tag']}")
                     
                     if row['file_link']:
                         st.markdown(f"🔗 [Open Document in College Google Drive]({row['file_link']})")
@@ -208,12 +199,10 @@ if app_mode == "🔍 Search & Browse Bank":
 # 2. ADD QUESTION / PYQ PORTAL
 # ==========================================
 elif app_mode == "✍️ Add Question / PYQ":
-    st.header("Add New Question or PYQ")
+    st.header("Upload Question Paper / PYQ")
     st.markdown("Uploaded documents will be safely routed directly into your official `pjc.ac.in` Google Drive repository.")
 
     with st.form("add_question_form"):
-        question_text = st.text_area("Question Text / Description", placeholder="Type question details or describe the document...")
-        
         col1, col2, col3 = st.columns(3)
         with col1:
             course_type = st.selectbox("Course Structure", ["Major", "MDC (Multidisciplinary)"])
@@ -223,21 +212,24 @@ elif app_mode == "✍️ Add Question / PYQ":
             paper_code = st.text_input("Paper Code & Name", placeholder="e.g., BNGR-CC-1")
         with col3:
             unit_module = st.text_input("Unit / Module", placeholder="e.g., Unit 2")
-            marks = st.number_input("Marks Allocated", min_value=1, max_value=50, value=5)
+            marks = st.number_input("Marks Allocated", min_value=1, max_value=100, value=50)
             
         col4, col5, col6 = st.columns(3)
         with col4:
             difficulty = st.selectbox("Difficulty Level", ["Easy", "Medium", "Hard"])
         with col5:
-            source_tag = st.text_input("Source Tag", value="Original", placeholder="e.g., University PYQ 2025")
+            source_tag = st.text_input("Source Tag", value="University PYQ", placeholder="e.g., Mid-Sem 2026")
         with col6:
             uploaded_file = st.file_uploader("Upload Document (PDF, PNG, JPEG)", type=["pdf", "png", "jpg", "jpeg"])
             
         submitted = st.form_submit_button("Upload & Save to Google Drive")
         
         if submitted:
-            if question_text and paper_code:
+            if paper_code:
                 drive_file_link = ""
+                # Automatically generate entry title from paper details and filename
+                file_label = uploaded_file.name if uploaded_file else "Question Paper"
+                question_text = f"{department} - {paper_code} ({semester}) [{file_label}]"
                 
                 if uploaded_file is not None:
                     with st.spinner("Syncing file with college Google Drive..."):
@@ -245,10 +237,8 @@ elif app_mode == "✍️ Add Question / PYQ":
                         with open(temp_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                         
-                        # Send file to Google Drive via service account
                         drive_file_link = upload_to_google_drive(temp_path, uploaded_file.name)
                         
-                        # Cleanup local temp storage
                         if os.path.exists(temp_path):
                             os.remove(temp_path)
                 
@@ -268,4 +258,4 @@ elif app_mode == "✍️ Add Question / PYQ":
                 insert_question(data_tuple)
                 st.success("Successfully added to the question bank and saved to Google Drive!")
             else:
-                st.error("Please fill out at least the Question Text and Paper Code.")
+                st.error("Please fill out at least the Paper Code & Name.")
