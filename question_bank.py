@@ -37,7 +37,7 @@ def get_drive_service():
         return None
 
 def upload_to_google_drive(file_path, file_name):
-    """Uploads file to the college Google Drive folder and returns public link."""
+    """Uploads file to Google Drive bypassing service account quota blocks."""
     service = get_drive_service()
     if not service:
         st.error("Google Drive service could not be initialized. Check secrets configuration.")
@@ -51,9 +51,9 @@ def upload_to_google_drive(file_path, file_name):
             'parents': [folder_id] if folder_id else []
         }
         
-        media = MediaFileUpload(file_path, resumable=True)
+        # Setting resumable=False avoids the storageQuotaExceeded error on personal Drive folders
+        media = MediaFileUpload(file_path, resumable=False)
         
-        # supportsAllDrives=True enables uploading to Google Shared Drives
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -63,7 +63,6 @@ def upload_to_google_drive(file_path, file_name):
         
         file_id = file.get('id')
         
-        # Grant read access while allowing Shared Drive permissions
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'},
