@@ -45,12 +45,15 @@ def upload_to_google_drive(file_path, file_name):
         
     try:
         folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
+        
         file_metadata = {
             'name': file_name,
             'parents': [folder_id] if folder_id else []
         }
+        
         media = MediaFileUpload(file_path, resumable=True)
         
+        # supportsAllDrives=True enables uploading to Google Shared Drives
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -59,6 +62,8 @@ def upload_to_google_drive(file_path, file_name):
         ).execute()
         
         file_id = file.get('id')
+        
+        # Grant read access while allowing Shared Drive permissions
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'},
@@ -153,11 +158,14 @@ PJC_DEPARTMENTS = [
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍️ Add Question / PYQ"])
 
-# --- SEARCH VIEW ---
+# ==========================================
+# 1. SEARCH & BROWSE QUESTION BANK
+# ==========================================
 if app_mode == "🔍 Search & Browse Bank":
     st.header("Search & Filter Question Bank")
     
     f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns(5)
+    
     with f_col1:
         selected_course_type = st.selectbox("Course Type", ["All", "Major", "MDC (Multidisciplinary)"])
     with f_col2:
@@ -198,7 +206,9 @@ if app_mode == "🔍 Search & Browse Bank":
                     st.markdown(f"**Marks:** {row['marks']}")
                     st.markdown(f"`{row['difficulty']}`")
 
-# --- ADD QUESTION VIEW ---
+# ==========================================
+# 2. ADD QUESTION / PYQ PORTAL
+# ==========================================
 elif app_mode == "✍️ Add Question / PYQ":
     st.header("Upload Question Paper / PYQ")
     st.markdown("Uploaded documents will be safely routed directly into your official Google Drive repository.")
