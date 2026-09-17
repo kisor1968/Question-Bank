@@ -14,7 +14,7 @@ DB_NAME = "pjc_question_bank.db"
 TEMP_DIR = "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-# --- GOOGLE DRIVE SETTINGS (Using Streamlit Secrets) ---
+# --- GOOGLE DRIVE SETTINGS ---
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
@@ -40,25 +40,29 @@ def upload_to_google_drive(file_path, file_name):
     """Uploads file to the college Google Drive folder and returns public link."""
     service = get_drive_service()
     if not service:
-        st.error("Google Drive service could not be initialized. Check your secrets configuration.")
+        st.error("Google Drive service could not be initialized. Check secrets configuration.")
         return None
         
     try:
         folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
         file_metadata = {
             'name': file_name,
-            'parents': [folder_id]
+            'parents': [folder_id] if folder_id else []
         }
         media = MediaFileUpload(file_path, resumable=True)
         
         file = service.files().create(
-            body=file_metadata, media_body=media, fields='id, webViewLink'
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink',
+            supportsAllDrives=True
         ).execute()
         
         file_id = file.get('id')
         service.permissions().create(
             fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'}
+            body={'role': 'reader', 'type': 'anyone'},
+            supportsAllDrives=True
         ).execute()
 
         return file.get('webViewLink')
@@ -135,7 +139,7 @@ st.set_page_config(
 )
 
 st.title("🎓 Prabhu Jagatbandhu College Question Bank & Archive")
-st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs) stored in official Google Drive.")
+st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
 
 PJC_DEPARTMENTS = [
     "Bengali", "English", "Sanskrit", "History", "Political Science", 
@@ -149,14 +153,11 @@ PJC_DEPARTMENTS = [
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍️ Add Question / PYQ"])
 
-# ==========================================
-# 1. SEARCH & BROWSE QUESTION BANK
-# ==========================================
+# --- SEARCH VIEW ---
 if app_mode == "🔍 Search & Browse Bank":
     st.header("Search & Filter Question Bank")
     
     f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns(5)
-    
     with f_col1:
         selected_course_type = st.selectbox("Course Type", ["All", "Major", "MDC (Multidisciplinary)"])
     with f_col2:
@@ -197,12 +198,10 @@ if app_mode == "🔍 Search & Browse Bank":
                     st.markdown(f"**Marks:** {row['marks']}")
                     st.markdown(f"`{row['difficulty']}`")
 
-# ==========================================
-# 2. ADD QUESTION / PYQ PORTAL
-# ==========================================
+# --- ADD QUESTION VIEW ---
 elif app_mode == "✍️ Add Question / PYQ":
     st.header("Upload Question Paper / PYQ")
-    st.markdown("Uploaded documents will be safely routed directly into your official `pjc.ac.in` Google Drive repository.")
+    st.markdown("Uploaded documents will be safely routed directly into your official Google Drive repository.")
 
     with st.form("add_question_form"):
         col1, col2, col3 = st.columns(3)
@@ -232,11 +231,10 @@ elif app_mode == "✍️ Add Question / PYQ":
             elif not uploaded_file:
                 st.error("Please attach a document file (PDF, PNG, JPEG) to upload.")
             else:
-                drive_file_link = ""
                 file_label = uploaded_file.name
                 question_text = f"{department} - {paper_code} ({semester}) [{file_label}]"
                 
-                with st.spinner("Syncing file with college Google Drive..."):
+                with st.spinner("Syncing file with Google Drive..."):
                     temp_path = os.path.join(TEMP_DIR, uploaded_file.name)
                     with open(temp_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
@@ -249,17 +247,17 @@ elif app_mode == "✍️ Add Question / PYQ":
                 if drive_file_link:
                     data_tuple = (
                         question_text,
-                    course_type,
-                    department,
-                    semester,
-                    paper_code,
-                    unit_module,
-                    marks,
-                    difficulty,
-                    source_tag,
-                    drive_file_link,
-                    datetime.now().strftime("%Y-%m-%d")
-                )
+                        course_type,
+                        department,
+                        semester,
+                        paper_code,
+                        unit_module,
+                        marks,
+                        difficulty,
+                        source_tag,
+                        drive_file_link,
+                        datetime.now().strftime("%Y-%m-%d")
+                    )
                     insert_question(data_tuple)
                     st.success("Successfully uploaded to Google Drive and added to the question bank!")
                 else:
