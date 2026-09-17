@@ -190,7 +190,9 @@ if app_mode == "🔍 Search & Browse Bank":
                     st.caption(f"🎓 **Type:** `{row['course_type']}` | 📂 **Dept:** {row['department']} | **Paper Code:** `{row['paper_code']}` | **Semester:** {row['semester']} | **Unit:** {row['unit_module']} | **Source:** {row['source_tag']}")
                     
                     if row['file_link']:
-                        st.markdown(f"🔗 [Open Document in College Google Drive]({row['file_link']})")
+                        st.markdown(f"🔗 [📥 Download / View Document from Google Drive]({row['file_link']})")
+                    else:
+                        st.warning("⚠️ No file link attached to this entry.")
                 with col_q2:
                     st.markdown(f"**Marks:** {row['marks']}")
                     st.markdown(f"`{row['difficulty']}`")
@@ -225,25 +227,28 @@ elif app_mode == "✍️ Add Question / PYQ":
         submitted = st.form_submit_button("Upload & Save to Google Drive")
         
         if submitted:
-            if paper_code:
+            if not paper_code:
+                st.error("Please fill out at least the Paper Code & Name.")
+            elif not uploaded_file:
+                st.error("Please attach a document file (PDF, PNG, JPEG) to upload.")
+            else:
                 drive_file_link = ""
-                # Automatically generate entry title from paper details and filename
-                file_label = uploaded_file.name if uploaded_file else "Question Paper"
+                file_label = uploaded_file.name
                 question_text = f"{department} - {paper_code} ({semester}) [{file_label}]"
                 
-                if uploaded_file is not None:
-                    with st.spinner("Syncing file with college Google Drive..."):
-                        temp_path = os.path.join(TEMP_DIR, uploaded_file.name)
-                        with open(temp_path, "wb") as f:
-                            f.write(uploaded_file.getbuffer())
-                        
-                        drive_file_link = upload_to_google_drive(temp_path, uploaded_file.name)
-                        
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
+                with st.spinner("Syncing file with college Google Drive..."):
+                    temp_path = os.path.join(TEMP_DIR, uploaded_file.name)
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    drive_file_link = upload_to_google_drive(temp_path, uploaded_file.name)
+                    
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
                 
-                data_tuple = (
-                    question_text,
+                if drive_file_link:
+                    data_tuple = (
+                        question_text,
                     course_type,
                     department,
                     semester,
@@ -255,7 +260,7 @@ elif app_mode == "✍️ Add Question / PYQ":
                     drive_file_link,
                     datetime.now().strftime("%Y-%m-%d")
                 )
-                insert_question(data_tuple)
-                st.success("Successfully added to the question bank and saved to Google Drive!")
-            else:
-                st.error("Please fill out at least the Paper Code & Name.")
+                    insert_question(data_tuple)
+                    st.success("Successfully uploaded to Google Drive and added to the question bank!")
+                else:
+                    st.error("Upload failed. Please check your Google Drive API and permissions.")
