@@ -28,9 +28,10 @@ def get_drive_service():
                 client_secret=drive_secrets.get("client_secret"),
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
-            # Refresh token if expired
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+            
+            # Refresh token to obtain a valid access token
+            creds.refresh(Request())
+            
             return build('drive', 'v3', credentials=creds)
         else:
             st.error("Missing 'google_drive' configuration in secrets.")
