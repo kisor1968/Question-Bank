@@ -5,7 +5,8 @@ import os
 from datetime import datetime
 
 # --- GOOGLE DRIVE API IMPORTS ---
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -14,30 +15,32 @@ DB_NAME = "pjc_question_bank.db"
 TEMP_DIR = "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-# --- GOOGLE DRIVE SETTINGS ---
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
 def get_drive_service():
-    """Initializes Google Drive service using Streamlit Secrets or local credentials file."""
+    """Initializes Google Drive service using User OAuth Credentials (uses your account storage)."""
     try:
-        if "gcp_service_account" in st.secrets:
-            service_account_info = dict(st.secrets["gcp_service_account"])
-            creds = service_account.Credentials.from_service_account_info(
-                service_account_info, scopes=SCOPES
+        if "google_drive" in st.secrets:
+            drive_secrets = st.secrets["google_drive"]
+            creds = Credentials(
+                token=None,
+                refresh_token=drive_secrets.get("refresh_token"),
+                token_uri=drive_secrets.get("token_uri", "https://oauth2.googleapis.com/token"),
+                client_id=drive_secrets.get("client_id"),
+                client_secret=drive_secrets.get("client_secret"),
+                scopes=['https://www.googleapis.com/auth/drive.file']
             )
-        elif os.path.exists('credentials.json'):
-            creds = service_account.Credentials.from_service_account_file(
-                'credentials.json', scopes=SCOPES
-            )
+            # Refresh token if expired
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            return build('drive', 'v3', credentials=creds)
         else:
+            st.error("Missing 'google_drive' configuration in secrets.")
             return None
-        return build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Google Drive Authentication Error: {e}")
         return None
 
 def upload_to_google_drive(file_path, file_name):
-    """Uploads file to Google Drive bypassing service account quota blocks."""
+    """Uploads file to the college Google Drive folder under your personal storage quota."""
     service = get_drive_service()
     if not service:
         st.error("Google Drive service could not be initialized. Check secrets configuration.")
@@ -51,22 +54,21 @@ def upload_to_google_drive(file_path, file_name):
             'parents': [folder_id] if folder_id else []
         }
         
-        # Setting resumable=False avoids the storageQuotaExceeded error on personal Drive folders
         media = MediaFileUpload(file_path, resumable=False)
         
+        # Create file under User OAuth context
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id, webViewLink',
-            supportsAllDrives=True
+            fields='id, webViewLink'
         ).execute()
         
         file_id = file.get('id')
         
+        # Grant public viewing permission
         service.permissions().create(
             fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'},
-            supportsAllDrives=True
+            body={'role': 'reader', 'type': 'anyone'}
         ).execute()
 
         return file.get('webViewLink')
