@@ -20,11 +20,23 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
-    """Initializes Google Drive service using a safe JSON string from Streamlit Secrets."""
+    """Initializes Google Drive service using native Streamlit Secrets table mapping."""
     try:
-        if "gcp_json" in st.secrets:
-            # Parse the full JSON string securely
-            service_account_info = json.loads(st.secrets["gcp_json"])
+        if "gcp_service_account" in st.secrets:
+            sec = st.secrets["gcp_service_account"]
+            
+            service_account_info = {
+                "type": sec.get("type", "service_account"),
+                "project_id": sec.get("project_id"),
+                "private_key_id": sec.get("private_key_id"),
+                "private_key": sec.get("private_key"),
+                "client_email": sec.get("client_email"),
+                "client_id": sec.get("client_id"),
+                "auth_uri": sec.get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
+                "token_uri": sec.get("token_uri", "https://oauth2.googleapis.com/token"),
+                "auth_provider_x509_cert_url": sec.get("auth_provider_x509_cert_url", "https://www.googleapis.com/oauth2/v1/certs"),
+                "client_x509_cert_url": sec.get("client_x509_cert_url")
+            }
             
             creds = service_account.Credentials.from_service_account_info(
                 service_account_info, scopes=SCOPES
@@ -39,36 +51,6 @@ def get_drive_service():
         return build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Google Drive Authentication Error: {e}")
-        return None
-
-def upload_to_google_drive(file_path, file_name):
-    """Uploads file to the college Google Drive folder and returns public link."""
-    service = get_drive_service()
-    if not service:
-        st.error("Google Drive service could not be initialized. Check secrets configuration.")
-        return None
-        
-    try:
-        folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
-        file_metadata = {
-            'name': file_name,
-            'parents': [folder_id] if folder_id else []
-        }
-        media = MediaFileUpload(file_path, resumable=True)
-        
-        file = service.files().create(
-            body=file_metadata, media_body=media, fields='id, webViewLink'
-        ).execute()
-        
-        file_id = file.get('id')
-        service.permissions().create(
-            fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'}
-        ).execute()
-
-        return file.get('webViewLink')
-    except Exception as e:
-        st.error(f"Google Drive Upload Error: {e}")
         return None
 
 def init_db():
