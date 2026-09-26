@@ -5,7 +5,8 @@ import os
 import json
 import tempfile
 from datetime import datetime
-
+import base64
+print(base64.b64encode(open('credentials.json', 'rb').read()).decode('utf-8'))
 # --- GOOGLE DRIVE API IMPORTS ---
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
