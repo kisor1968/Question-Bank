@@ -5,8 +5,7 @@ import os
 from datetime import datetime
 
 # --- GOOGLE DRIVE API IMPORTS ---
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -14,6 +13,9 @@ from googleapiclient.http import MediaFileUpload
 DB_NAME = "pjc_question_bank.db"
 TEMP_DIR = "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
+
+# --- GOOGLE DRIVE SCOPES ---
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
     """Initializes Google Drive service using Streamlit Secrets or local credentials file."""
@@ -47,7 +49,7 @@ def get_drive_service():
         return None
 
 def upload_to_google_drive(file_path, file_name):
-    """Uploads file to the college Google Drive folder under your personal storage quota."""
+    """Uploads file to the college Google Drive folder and returns public link."""
     service = get_drive_service()
     if not service:
         st.error("Google Drive service could not be initialized. Check secrets configuration.")
@@ -55,24 +57,17 @@ def upload_to_google_drive(file_path, file_name):
         
     try:
         folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
-        
         file_metadata = {
             'name': file_name,
             'parents': [folder_id] if folder_id else []
         }
+        media = MediaFileUpload(file_path, resumable=True)
         
-        media = MediaFileUpload(file_path, resumable=False)
-        
-        # Create file under User OAuth context
         file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink'
+            body=file_metadata, media_body=media, fields='id, webViewLink'
         ).execute()
         
         file_id = file.get('id')
-        
-        # Grant public viewing permission
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
@@ -152,7 +147,7 @@ st.set_page_config(
 )
 
 st.title("🎓 Prabhu Jagatbandhu College Question Bank & Archive")
-st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
+st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs) stored in official Google Drive.")
 
 PJC_DEPARTMENTS = [
     "Bengali", "English", "Sanskrit", "History", "Political Science", 
