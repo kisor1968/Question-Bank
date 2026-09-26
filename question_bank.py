@@ -20,53 +20,15 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
-    """Initializes Google Drive service using Streamlit Secrets with strict PEM normalization and a secure temp file bridge."""
+    """Initializes Google Drive service using a safe JSON string from Streamlit Secrets."""
     try:
-        if "gcp_service_account" in st.secrets:
-            sec = st.secrets["gcp_service_account"]
+        if "gcp_json" in st.secrets:
+            # Parse the full JSON string securely
+            service_account_info = json.loads(st.secrets["gcp_json"])
             
-            # Extract and clean the private key line by line to eliminate stray characters/padding errors
-            raw_key = str(sec.get("private_key", ""))
-            if "\\n" in raw_key:
-                raw_key = raw_key.replace("\\n", "\n")
-                
-            lines = raw_key.splitlines()
-            cleaned_lines = [line.strip() for line in lines if line.strip()]
-            cleaned_key = "\n".join(cleaned_lines)
-            
-            # Ensure correct PEM header and footer wrapping
-            if not cleaned_key.startswith("-----BEGIN PRIVATE KEY-----"):
-                start = cleaned_key.find("-----BEGIN PRIVATE KEY-----")
-                end = cleaned_key.find("-----END PRIVATE KEY-----") + len("-----END PRIVATE KEY-----")
-                if start != -1 and end != -1:
-                    cleaned_key = cleaned_key[start:end]
-
-            service_account_info = {
-                "type": "service_account",
-                "project_id": str(sec.get("project_id", "")),
-                "private_key_id": str(sec.get("private_key_id", "")),
-                "private_key": cleaned_key,
-                "client_email": str(sec.get("client_email", "")),
-                "client_id": str(sec.get("client_id", "")),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "client_x509_cert_url": str(sec.get("client_x509_cert_url", ""))
-            }
-            
-            # Write to a secure temporary file to let Google's library load it natively without crypto edge cases
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_cred:
-                json.dump(service_account_info, temp_cred)
-                temp_cred_path = temp_cred.name
-
-            creds = service_account.Credentials.from_service_account_file(
-                temp_cred_path, scopes=SCOPES
+            creds = service_account.Credentials.from_service_account_info(
+                service_account_info, scopes=SCOPES
             )
-            
-            # Clean up temp file immediately after loading
-            if os.path.exists(temp_cred_path):
-                os.remove(temp_cred_path)
-                
         elif os.path.exists('credentials.json'):
             creds = service_account.Credentials.from_service_account_file(
                 'credentials.json', scopes=SCOPES
