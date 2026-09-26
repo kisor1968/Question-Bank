@@ -16,26 +16,32 @@ TEMP_DIR = "temp_uploads"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 def get_drive_service():
-    """Initializes Google Drive service using User OAuth Credentials (uses your account storage)."""
+    """Initializes Google Drive service using Streamlit Secrets or local credentials file."""
     try:
-        if "google_drive" in st.secrets:
-            drive_secrets = st.secrets["google_drive"]
-            creds = Credentials(
-                token=None,
-                refresh_token=drive_secrets.get("refresh_token"),
-                token_uri=drive_secrets.get("token_uri", "https://oauth2.googleapis.com/token"),
-                client_id=drive_secrets.get("client_id"),
-                client_secret=drive_secrets.get("client_secret"),
-                scopes=['https://www.googleapis.com/auth/drive.file']
+        if "gcp_service_account" in st.secrets:
+            sec = st.secrets["gcp_service_account"]
+            service_account_info = {
+                "type": "service_account",
+                "project_id": str(sec.get("project_id", "")),
+                "private_key_id": str(sec.get("private_key_id", "")),
+                "private_key": str(sec.get("private_key", "")).replace("\\n", "\n"),
+                "client_email": str(sec.get("client_email", "")),
+                "client_id": str(sec.get("client_id", "")),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": str(sec.get("client_x509_cert_url", ""))
+            }
+            creds = service_account.Credentials.from_service_account_info(
+                service_account_info, scopes=SCOPES
             )
-            
-            # Refresh token to obtain a valid access token
-            creds.refresh(Request())
-            
-            return build('drive', 'v3', credentials=creds)
+        elif os.path.exists('credentials.json'):
+            creds = service_account.Credentials.from_service_account_file(
+                'credentials.json', scopes=SCOPES
+            )
         else:
-            st.error("Missing 'google_drive' configuration in secrets.")
             return None
+        return build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Google Drive Authentication Error: {e}")
         return None
