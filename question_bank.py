@@ -22,11 +22,16 @@ def get_drive_service():
     try:
         if "gcp_service_account" in st.secrets:
             sec = st.secrets["gcp_service_account"]
+            
+            # Safely fix newline strings whether single-line or multi-line
+            raw_key = str(sec.get("private_key", ""))
+            formatted_key = raw_key.replace("\\n", "\n")
+            
             service_account_info = {
                 "type": "service_account",
                 "project_id": str(sec.get("project_id", "")),
                 "private_key_id": str(sec.get("private_key_id", "")),
-                "private_key": str(sec.get("private_key", "")).replace("\\n", "\n"),
+                "private_key": formatted_key,
                 "client_email": str(sec.get("client_email", "")),
                 "client_id": str(sec.get("client_id", "")),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
