@@ -53,6 +53,36 @@ def get_drive_service():
         st.error(f"Google Drive Authentication Error: {e}")
         return None
 
+def upload_to_google_drive(file_path, file_name):
+    """Uploads file to the college Google Drive folder and returns public link."""
+    service = get_drive_service()
+    if not service:
+        st.error("Google Drive service could not be initialized. Check secrets configuration.")
+        return None
+        
+    try:
+        folder_id = st.secrets.get("google_drive", {}).get("folder_id", "")
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id] if folder_id else []
+        }
+        media = MediaFileUpload(file_path, resumable=True)
+        
+        file = service.files().create(
+            body=file_metadata, media_body=media, fields='id, webViewLink'
+        ).execute()
+        
+        file_id = file.get('id')
+        service.permissions().create(
+            fileId=file_id,
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+
+        return file.get('webViewLink')
+    except Exception as e:
+        st.error(f"Google Drive Upload Error: {e}")
+        return None
+
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
