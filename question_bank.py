@@ -2,6 +2,8 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import os
+import json
+import tempfile
 from datetime import datetime
 
 # --- GOOGLE DRIVE API IMPORTS ---
@@ -18,24 +20,26 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
-    """Initializes Google Drive service using Streamlit Secrets with automatic key sanitization."""
+    """Initializes Google Drive service using Streamlit Secrets with strict PEM normalization and a secure temp file bridge."""
     try:
         if "gcp_service_account" in st.secrets:
             sec = st.secrets["gcp_service_account"]
             
-            # Robustly clean the private key string to remove formatting glitches
+            # Extract and clean the private key line by line to eliminate stray characters/padding errors
             raw_key = str(sec.get("private_key", ""))
-            cleaned_key = raw_key.strip()
-            
-            # Fix escaped newlines if present
-            if "\\n" in cleaned_key:
-                cleaned_key = cleaned_key.replace("\\n", "\n")
+            if "\\n" in raw_key:
+                raw_key = raw_key.replace("\\n", "\n")
                 
-            # Ensure proper PEM headers/footers spacing
-            if "BEGIN PRIVATE KEY" in cleaned_key and not cleaned_key.startswith("-----BEGIN PRIVATE KEY-----"):
-                start_idx = cleaned_key.find("-----BEGIN PRIVATE KEY-----")
-                end_idx = cleaned_key.find("-----END PRIVATE KEY-----") + len("-----END PRIVATE KEY-----")
-                cleaned_key = cleaned_key[start_idx:end_idx]
+            lines = raw_key.splitlines()
+            cleaned_lines = [line.strip() for line in lines if line.strip()]
+            cleaned_key = "\n".join(cleaned_lines)
+            
+            # Ensure correct PEM header and footer wrapping
+            if not cleaned_key.startswith("-----BEGIN PRIVATE KEY-----"):
+                start = cleaned_key.find("-----BEGIN PRIVATE KEY-----")
+                end = cleaned_key.find("-----END PRIVATE KEY-----") + len("-----END PRIVATE KEY-----")
+                if start != -1 and end != -1:
+                    cleaned_key = cleaned_key[start:end]
 
             service_account_info = {
                 "type": "service_account",
@@ -49,15 +53,27 @@ def get_drive_service():
                 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                 "client_x509_cert_url": str(sec.get("client_x509_cert_url", ""))
             }
-            creds = service_account.Credentials.from_service_account_info(
-                service_account_info, scopes=SCOPES
+            
+            # Write to a secure temporary file to let Google's library load it natively without crypto edge cases
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_cred:
+                json.dump(service_account_info, temp_cred)
+                temp_cred_path = temp_cred.name
+
+            creds = service_account.Credentials.from_service_account_file(
+                temp_cred_path, scopes=SCOPES
             )
+            
+            # Clean up temp file immediately after loading
+            if os.path.exists(temp_cred_path):
+                os.remove(temp_cred_path)
+                
         elif os.path.exists('credentials.json'):
             creds = service_account.Credentials.from_service_account_file(
                 'credentials.json', scopes=SCOPES
             )
         else:
             return None
+            
         return build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Google Drive Authentication Error: {e}")
