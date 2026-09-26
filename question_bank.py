@@ -18,15 +18,30 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_drive_service():
-    """Initializes Google Drive service using Streamlit Secrets or local credentials file."""
+    """Initializes Google Drive service using Streamlit Secrets with automatic key sanitization."""
     try:
         if "gcp_service_account" in st.secrets:
             sec = st.secrets["gcp_service_account"]
+            
+            # Robustly clean the private key string to remove formatting glitches
+            raw_key = str(sec.get("private_key", ""))
+            cleaned_key = raw_key.strip()
+            
+            # Fix escaped newlines if present
+            if "\\n" in cleaned_key:
+                cleaned_key = cleaned_key.replace("\\n", "\n")
+                
+            # Ensure proper PEM headers/footers spacing
+            if "BEGIN PRIVATE KEY" in cleaned_key and not cleaned_key.startswith("-----BEGIN PRIVATE KEY-----"):
+                start_idx = cleaned_key.find("-----BEGIN PRIVATE KEY-----")
+                end_idx = cleaned_key.find("-----END PRIVATE KEY-----") + len("-----END PRIVATE KEY-----")
+                cleaned_key = cleaned_key[start_idx:end_idx]
+
             service_account_info = {
                 "type": "service_account",
                 "project_id": str(sec.get("project_id", "")),
                 "private_key_id": str(sec.get("private_key_id", "")),
-                "private_key": str(sec.get("private_key", "")),
+                "private_key": cleaned_key,
                 "client_email": str(sec.get("client_email", "")),
                 "client_id": str(sec.get("client_id", "")),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
