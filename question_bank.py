@@ -138,7 +138,7 @@ elif app_mode == "✍️ Submit Question / PYQ (Google Form)":
     """)
     
     # Replace with your actual Google Form shareable link (e.g., https://forms.gle/xxxxx)
-    GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/YOUR_FORM_ID_HERE/viewform"
+    GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
     
     st.link_button("📤 Open PJC Question Submission Form", GOOGLE_FORM_URL, use_container_width=True)
     
