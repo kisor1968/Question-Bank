@@ -1,60 +1,20 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
-import os
-from datetime import datetime
 
-# --- DATABASE & STORAGE CONFIGURATION ---
-DB_NAME = "pjc_question_bank.db"
+# --- GOOGLE SHEET CONFIGURATION ---
+# Paste your published Google Sheet CSV URL inside the quotes below:
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTk76nAKx8YLKPJ7O9fqdsupi5ULuxe8RjJhIPv4GpUNUjmQkwEv6NlydEZuAA9nzHe04Dzq16cMTfj/pub?output=csv"
 
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question_text TEXT NOT NULL,
-            course_type TEXT,
-            department TEXT,
-            semester TEXT,
-            paper_code TEXT,
-            unit_module TEXT,
-            marks INTEGER,
-            difficulty TEXT,
-            source_tag TEXT,
-            file_link TEXT,
-            date_added TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-def fetch_questions(course_type="All", dept="All", sem="All", diff="All", search_query=""):
-    conn = sqlite3.connect(DB_NAME)
-    query = "SELECT * FROM questions WHERE 1=1"
-    params = []
-    
-    if course_type != "All":
-        query += " AND course_type = ?"
-        params.append(course_type)
-    if dept != "All":
-        query += " AND department = ?"
-        params.append(dept)
-    if sem != "All":
-        query += " AND semester = ?"
-        params.append(sem)
-    if diff != "All":
-        query += " AND difficulty = ?"
-        params.append(diff)
-    if search_query:
-        query += " AND (question_text LIKE ? OR paper_code LIKE ?)"
-        params.extend([f"%{search_query}%", f"%{search_query}%"])
-        
-    df = pd.read_sql_query(query, conn, params=params)
-    conn.close()
-    return df
+@st.cache_data(ttl=30)
+def load_sheet_data():
+    """Fetches live student submissions directly from the Google Sheet response backend."""
+    if not SHEET_CSV_URL or "YOUR_PUBLISHED" in SHEET_CSV_URL:
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(SHEET_CSV_URL)
+        return df
+    except Exception as e:
+        return pd.DataFrame()
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -84,47 +44,65 @@ app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍�
 if app_mode == "🔍 Search & Browse Bank":
     st.header("Search & Filter Question Bank")
     
-    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns(5)
+    df = load_sheet_data()
     
-    with f_col1:
-        selected_course_type = st.selectbox("Course Type", ["All", "Major", "MDC (Multidisciplinary)"])
-    with f_col2:
-        selected_dept = st.selectbox("Department", ["All"] + PJC_DEPARTMENTS)
-    with f_col3:
-        selected_sem = st.selectbox("Semester", ["All", "Semester I", "Semester II", "Semester III", "Semester IV", "Semester V", "Semester VI"])
-    with f_col4:
-        selected_diff = st.selectbox("Difficulty", ["All", "Easy", "Medium", "Hard"])
-    with f_col5:
-        search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
-        
-    filtered_df = fetch_questions(
-        course_type=selected_course_type, 
-        dept=selected_dept, 
-        sem=selected_sem, 
-        diff=selected_diff, 
-        search_query=search_text
-    )
-    
-    st.markdown("---")
-    st.subheader(f"Results Found: {len(filtered_df)}")
-    
-    if filtered_df.empty:
-        st.info("No questions found matching your criteria yet.")
+    if df.empty:
+        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made. Please publish your Google Sheet as a CSV and update `SHEET_CSV_URL` in the code.")
     else:
-        for index, row in filtered_df.iterrows():
-            with st.container(border=True):
-                col_q1, col_q2 = st.columns([4, 1])
-                with col_q1:
-                    st.markdown(f"**Paper / Title:** {row['question_text']}")
-                    st.caption(f"🎓 **Type:** `{row['course_type']}` | 📂 **Dept:** {row['department']} | **Paper Code:** `{row['paper_code']}` | **Semester:** {row['semester']} | **Unit:** {row['unit_module']} | **Source:** {row['source_tag']}")
+        # Clean column names
+        df.columns = df.columns.str.strip()
+        
+        # Filter controls layout
+        f_col1, f_col2, f_col3 = st.columns(3)
+        with f_col1:
+            # Look for Department column dynamically
+            dept_col = next((col for col in df.columns if 'department' in col.lower()), df.columns[1] if len(df.columns) > 1 else None)
+            dept_options = ["All"] + list(df[dept_col].dropna().unique()) if dept_col else ["All"]
+            selected_dept = st.selectbox("Department", dept_options)
+            
+        with f_col2:
+            # Look for Semester column dynamically
+            sem_col = next((col for col in df.columns if 'semester' in col.lower()), df.columns[3] if len(df.columns) > 3 else None)
+            sem_options = ["All"] + list(df[sem_col].dropna().unique()) if sem_col else ["All"]
+            selected_sem = st.selectbox("Semester", sem_options)
+            
+        with f_col3:
+            search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
+            
+        # Apply filters
+        filtered_df = df.copy()
+        if selected_dept != "All" and dept_col:
+            filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
+        if selected_sem != "All" and sem_col:
+            filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
+        if search_text:
+            mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
+            filtered_df = filtered_df[mask]
+            
+        st.markdown("---")
+        st.subheader(f"Results Found: {len(filtered_df)}")
+        
+        if filtered_df.empty:
+            st.info("No questions found matching your criteria.")
+        else:
+            for index, row in filtered_df.iterrows():
+                with st.container(border=True):
+                    # Extract values safely
+                    timestamp = row.iloc[0] if len(row) > 0 else ""
+                    dept_val = row[dept_col] if dept_col in row else "N/A"
+                    sem_val = row[sem_col] if sem_col in row else "N/A"
                     
-                    if row['file_link']:
-                        st.markdown(f"🔗 [📥 View / Download Document]({row['file_link']})")
+                    # Assume second or third column holds paper info/code
+                    paper_info = row.iloc[2] if len(row) > 2 else "Question Paper"
+                    file_link = row.iloc[-1] if len(row) > 0 else ""
+                    
+                    st.markdown(f"**Paper Details:** {paper_info}")
+                    st.caption(f"📂 **Dept:** {dept_val} | 📚 **Semester:** {sem_val} | 🕒 **Submitted:** {timestamp}")
+                    
+                    if pd.notna(file_link) and str(file_link).startswith("http"):
+                        st.markdown(f"🔗 [📥 View / Download Document from Drive]({file_link})")
                     else:
-                        st.warning("⚠️ No file link attached to this entry.")
-                with col_q2:
-                    st.markdown(f"**Marks:** {row['marks']}")
-                    st.markdown(f"`{row['difficulty']}`")
+                        st.warning("⚠️ No file link available for this submission.")
 
 # ==========================================
 # 2. SUBMIT QUESTION VIA GOOGLE FORM LINK
@@ -132,14 +110,10 @@ if app_mode == "🔍 Search & Browse Bank":
 elif app_mode == "✍️ Submit Question / PYQ (Google Form)":
     st.header("Upload Question Paper via Secure Google Form")
     st.markdown("""
-    To ensure seamless file uploads and avoid permission restrictions, question paper submissions are securely managed through our official Google Form portal. 
-    
-    Click the button below to open the submission form in a new tab:
+    To ensure seamless file uploads and avoid permission restrictions, question paper submissions are managed through our official Google Form portal.
     """)
     
-    # Replace with your actual Google Form shareable link (e.g., https://forms.gle/xxxxx)
     GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
-    
     st.link_button("📤 Open PJC Question Submission Form", GOOGLE_FORM_URL, use_container_width=True)
     
-    st.info("💡 **Tip:** After submitting your question paper through the form, it will be routed to the departmental folder and updated in the archive.")
+    st.info("💡 **Tip:** Submitted papers are automatically sorted into departmental folders and instantly populate this search archive.")
