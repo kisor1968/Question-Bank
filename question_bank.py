@@ -51,8 +51,8 @@ with col_logo:
         st.write("🎓")
 
 with col_title:
-    st.title("Prabhu Jagatbandhu College Question Bank & Archive")
-    st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
+    st.title("Prabhu Jagatbandhu College Question Bank")
+    st.markdown("Centralized repository featuring University Previous Years' Questions (PYQs).")
 
 st.markdown("---")
 
