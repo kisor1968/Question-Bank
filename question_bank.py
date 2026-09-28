@@ -3,7 +3,7 @@ import pandas as pd
 
 # --- GOOGLE SHEET CONFIGURATION ---
 # Paste your published Google Sheet CSV URL inside the quotes below:
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTk76nAKx8YLKPJ7O9fqdsupi5ULuxe8RjJhIPv4GpUNUjmQkwEv6NlydEZuAA9nzHe04Dzq16cMTfj/pub?output=csv"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 
 @st.cache_data(ttl=30)
 def load_sheet_data():
