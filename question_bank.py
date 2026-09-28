@@ -46,8 +46,9 @@ if app_mode == "🔍 Search & Browse Bank":
         sem_col = next((col for col in df.columns if 'semester' in col.lower()), None)
         year_col = next((col for col in df.columns if 'year' in col.lower()), None)
         
-        # Filter controls layout
-        f_col1, f_col2, f_col3 = st.columns(3)
+        # Filter controls layout (Expanded to 4 columns to include Year)
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+        
         with f_col1:
             dept_options = ["All"] + list(df[dept_col].dropna().unique()) if dept_col else ["All"]
             selected_dept = st.selectbox("Department", dept_options)
@@ -57,6 +58,10 @@ if app_mode == "🔍 Search & Browse Bank":
             selected_sem = st.selectbox("Semester", sem_options)
             
         with f_col3:
+            year_options = ["All"] + list(df[year_col].dropna().unique()) if year_col else ["All"]
+            selected_year = st.selectbox("Year of Examination", year_options)
+            
+        with f_col4:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
         # Apply filters
@@ -65,6 +70,8 @@ if app_mode == "🔍 Search & Browse Bank":
             filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
         if selected_sem != "All" and sem_col:
             filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
+        if selected_year != "All" and year_col:
+            filtered_df = filtered_df[filtered_df[year_col] == selected_year]
         if search_text:
             mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
             filtered_df = filtered_df[mask]
