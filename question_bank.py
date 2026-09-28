@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for light blue background and blue theme accents
+# Custom CSS for light blue background, blue theme accents, and header alignment
 st.markdown("""
 <style>
     /* Main app background color */
@@ -42,23 +42,31 @@ def load_sheet_data():
         return pd.DataFrame()
 
 # --- TOP HEADER WITH LOGO & TITLE ---
-col_logo, col_title = st.columns([1, 8])
+header_col1, header_col2 = st.columns([1, 9], vertical_alignment="center")
 
-with col_logo:
+with header_col1:
     try:
-        st.image("logo_pjc.png", width=95)
+        st.image("logo_pjc.png", width=90)
     except Exception:
         st.write("🎓")
 
-with col_title:
-    st.title("Prabhu Jagatbandhu College Question Bank")
-    st.markdown("Centralized repository featuring University Previous Years' Questions (PYQs).")
+with header_col2:
+    st.title("Prabhu Jagatbandhu College Question Bank & Archive")
+    st.markdown("<p style='color: #334155; font-size: 16px; margin-top: -15px;'>Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- SIDEBAR NAVIGATION ---
+# --- SIDEBAR NAVIGATION & GUIDE ---
 st.sidebar.title("Navigation")
-app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍️ Submit Question / PYQ (Google Form)"])
+app_mode = st.sidebar.radio("Select View:", ["🔍 Search & Browse Bank", "✍️ Submit Question / PYQ", "❓ FAQs"])
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("📖 Quick Guide")
+st.sidebar.markdown("""
+1. **Search**: Select your Department, Semester, or Year to filter papers.
+2. **Download**: Click the view/download link under any result.
+3. **Contribute**: Use the submission tab to upload new question papers securely.
+""")
 
 # ==========================================
 # 1. SEARCH & BROWSE QUESTION BANK
@@ -142,8 +150,30 @@ if app_mode == "🔍 Search & Browse Bank":
 # ==========================================
 # 2. SUBMIT QUESTION VIA GOOGLE FORM LINK
 # ==========================================
-elif app_mode == "✍️ Submit Question / PYQ (Google Form)":
+elif app_mode == "✍️ Submit Question / PYQ":
     st.header("Upload Question Paper via Secure Google Form")
     st.markdown("Use the official form portal below to submit new question papers:")
     
     st.link_button("📤 Open PJC Question Submission Form", GOOGLE_FORM_URL, use_container_width=True)
+
+# ==========================================
+# 3. FREQUENTLY ASKED QUESTIONS (FAQS)
+# ==========================================
+elif app_mode == "❓ FAQs":
+    st.header("Frequently Asked Questions (FAQs)")
+    st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
+    
+    with st.expander("1. How can I search for a specific question paper?"):
+        st.write("Navigate to the **Search & Browse Bank** tab. Use the dropdown filters to choose your Department, Semester, or Year of Examination, or type a paper code into the keyword search box.")
+    
+    with st.expander("2. How do I submit or upload a new previous year question (PYQ)?"):
+        st.write("Go to the **Submit Question / PYQ** tab from the sidebar and click the button to open the official Google Form. Fill out the required details and upload your PDF/document file.")
+    
+    with st.expander("3. Where do uploaded files go in Google Drive?"):
+        st.write("Files uploaded through the form are automatically processed and sorted into their respective departmental folders (e.g., Physics, Chemistry, Mathematics) inside the college's master Google Drive repository.")
+    
+    with st.expander("4. How quickly do newly submitted papers show up on the website?"):
+        st.write("Submissions appear almost instantly on the website as soon as the Google Form is submitted and synced with the live archive sheet.")
+    
+    with st.expander("5. Who is allowed to access this question bank?"):
+        st.write("This archive is fully open and accessible to all students and faculty members of Prabhu Jagatbandhu College for studying and academic preparation.")
