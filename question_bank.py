@@ -46,7 +46,7 @@ if app_mode == "🔍 Search & Browse Bank":
         sem_col = next((col for col in df.columns if 'semester' in col.lower()), None)
         year_col = next((col for col in df.columns if 'year' in col.lower()), None)
         
-        # Filter controls layout (Expanded to 4 columns to include Year)
+        # Filter controls layout
         f_col1, f_col2, f_col3, f_col4 = st.columns(4)
         
         with f_col1:
@@ -89,12 +89,19 @@ if app_mode == "🔍 Search & Browse Bank":
                     year_val = row[year_col] if year_col and year_col in row else "N/A"
                     
                     paper_info = row.iloc[2] if len(row) > 2 else "Question Paper"
-                    file_link = row.iloc[-1] if len(row) > 0 else ""
+                    
+                    # Dynamically find the valid HTTP file link across all columns
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
                     
                     st.markdown(f"**Paper Details:** {paper_info}")
                     st.caption(f"📂 **Dept:** {dept_val} | 📚 **Semester:** {sem_val} | 📅 **Year:** `{year_val}`")
                     
-                    if pd.notna(file_link) and str(file_link).startswith("http"):
+                    if pd.notna(file_link) and file_link.startswith("http"):
                         st.markdown(f"🔗 [📥 View / Download Document]({file_link})")
                     else:
                         st.warning("⚠️ No file link available for this submission.")
