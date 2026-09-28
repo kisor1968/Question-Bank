@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # --- GOOGLE SHEET CONFIGURATION ---
-SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
 
 @st.cache_data(ttl=30)
