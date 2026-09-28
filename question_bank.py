@@ -1,6 +1,33 @@
 import streamlit as st
 import pandas as pd
 
+# --- PAGE CONFIGURATION & STYLING ---
+st.set_page_config(
+    page_title="Prabhu Jagatbandhu College - Question Bank",
+    page_icon="🎓",
+    layout="wide"
+)
+
+# Custom CSS for light blue background and blue theme accents
+st.markdown("""
+<style>
+    /* Main app background color */
+    .stApp {
+        background-color: #EBF4FF;
+    }
+    
+    /* Sidebar background styling */
+    [data-testid="stSidebar"] {
+        background-color: #D6E4FD;
+    }
+    
+    /* Headers and text styling */
+    h1, h2, h3 {
+        color: #1E3A8A;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- GOOGLE SHEET CONFIGURATION ---
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
@@ -14,14 +41,20 @@ def load_sheet_data():
     except Exception:
         return pd.DataFrame()
 
-st.set_page_config(
-    page_title="Prabhu Jagatbandhu College - Question Bank",
-    page_icon="🎓",
-    layout="wide"
-)
+# --- TOP HEADER WITH LOGO & TITLE ---
+col_logo, col_title = st.columns([1, 8])
 
-st.title("🎓 Prabhu Jagatbandhu College Question Bank & Archive")
-st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
+with col_logo:
+    try:
+        st.image("logo_pjc.png", width=95)
+    except Exception:
+        st.write("🎓")
+
+with col_title:
+    st.title("Prabhu Jagatbandhu College Question Bank & Archive")
+    st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
+
+st.markdown("---")
 
 # --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
