@@ -2,21 +2,18 @@ import streamlit as st
 import pandas as pd
 
 # --- GOOGLE SHEET CONFIGURATION ---
-# Paste your published Google Sheet CSV URL inside the quotes below:
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
+SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE"
+GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
 
 @st.cache_data(ttl=30)
 def load_sheet_data():
-    """Fetches live student submissions directly from the Google Sheet response backend."""
     if not SHEET_CSV_URL or "YOUR_PUBLISHED" in SHEET_CSV_URL:
         return pd.DataFrame()
     try:
-        df = pd.read_csv(SHEET_CSV_URL)
-        return df
-    except Exception as e:
+        return pd.read_csv(SHEET_CSV_URL)
+    except Exception:
         return pd.DataFrame()
 
-# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Prabhu Jagatbandhu College - Question Bank",
     page_icon="🎓",
@@ -25,14 +22,6 @@ st.set_page_config(
 
 st.title("🎓 Prabhu Jagatbandhu College Question Bank & Archive")
 st.markdown("Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).")
-
-PJC_DEPARTMENTS = [
-    "Bengali", "English", "Sanskrit", "History", "Political Science", 
-    "Philosophy", "Education", "Sociology", "Economics", "Geography", 
-    "Mathematics", "Computer Science", "Physics", "Chemistry", "Botany", 
-    "Zoology", "Electronics", "Food & Nutrition", "Physical Education", 
-    "Commerce (Accounting & Finance)"
-]
 
 # --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
@@ -47,22 +36,23 @@ if app_mode == "🔍 Search & Browse Bank":
     df = load_sheet_data()
     
     if df.empty:
-        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made. Please publish your Google Sheet as a CSV and update `SHEET_CSV_URL` in the code.")
+        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
     else:
         # Clean column names
         df.columns = df.columns.str.strip()
         
+        # Dynamically find column names based on common headers
+        dept_col = next((col for col in df.columns if 'department' in col.lower()), None)
+        sem_col = next((col for col in df.columns if 'semester' in col.lower()), None)
+        year_col = next((col for col in df.columns if 'year' in col.lower()), None)
+        
         # Filter controls layout
         f_col1, f_col2, f_col3 = st.columns(3)
         with f_col1:
-            # Look for Department column dynamically
-            dept_col = next((col for col in df.columns if 'department' in col.lower()), df.columns[1] if len(df.columns) > 1 else None)
             dept_options = ["All"] + list(df[dept_col].dropna().unique()) if dept_col else ["All"]
             selected_dept = st.selectbox("Department", dept_options)
             
         with f_col2:
-            # Look for Semester column dynamically
-            sem_col = next((col for col in df.columns if 'semester' in col.lower()), df.columns[3] if len(df.columns) > 3 else None)
             sem_options = ["All"] + list(df[sem_col].dropna().unique()) if sem_col else ["All"]
             selected_sem = st.selectbox("Semester", sem_options)
             
@@ -87,20 +77,18 @@ if app_mode == "🔍 Search & Browse Bank":
         else:
             for index, row in filtered_df.iterrows():
                 with st.container(border=True):
-                    # Extract values safely
-                    timestamp = row.iloc[0] if len(row) > 0 else ""
-                    dept_val = row[dept_col] if dept_col in row else "N/A"
-                    sem_val = row[sem_col] if sem_col in row else "N/A"
+                    dept_val = row[dept_col] if dept_col and dept_col in row else "N/A"
+                    sem_val = row[sem_col] if sem_col and sem_col in row else "N/A"
+                    year_val = row[year_col] if year_col and year_col in row else "N/A"
                     
-                    # Assume second or third column holds paper info/code
                     paper_info = row.iloc[2] if len(row) > 2 else "Question Paper"
                     file_link = row.iloc[-1] if len(row) > 0 else ""
                     
                     st.markdown(f"**Paper Details:** {paper_info}")
-                    st.caption(f"📂 **Dept:** {dept_val} | 📚 **Semester:** {sem_val} | 🕒 **Submitted:** {timestamp}")
+                    st.caption(f"📂 **Dept:** {dept_val} | 📚 **Semester:** {sem_val} | 📅 **Year:** `{year_val}`")
                     
                     if pd.notna(file_link) and str(file_link).startswith("http"):
-                        st.markdown(f"🔗 [📥 View / Download Document from Drive]({file_link})")
+                        st.markdown(f"🔗 [📥 View / Download Document]({file_link})")
                     else:
                         st.warning("⚠️ No file link available for this submission.")
 
@@ -109,11 +97,6 @@ if app_mode == "🔍 Search & Browse Bank":
 # ==========================================
 elif app_mode == "✍️ Submit Question / PYQ (Google Form)":
     st.header("Upload Question Paper via Secure Google Form")
-    st.markdown("""
-    To ensure seamless file uploads and avoid permission restrictions, question paper submissions are managed through our official Google Form portal.
-    """)
+    st.markdown("Use the official form portal below to submit new question papers:")
     
-    GOOGLE_FORM_URL = "https://forms.gle/ukm1N3SyHaVdNmi3A"
     st.link_button("📤 Open PJC Question Submission Form", GOOGLE_FORM_URL, use_container_width=True)
-    
-    st.info("💡 **Tip:** Submitted papers are automatically sorted into departmental folders and instantly populate this search archive.")
