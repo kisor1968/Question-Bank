@@ -146,7 +146,10 @@ if app_mode == "🔍 Search & Browse Bank":
                     st.caption(f"📂 **Dept:** {dept_val} | 📚 **Semester:** {sem_val} | 📅 **Year:** `{year_val}`")
                     
                     if pd.notna(file_link) and file_link.startswith("http"):
-                        st.markdown(f"🔗 [📥 View / Download Document]({file_link})")
+                        # Handle multiple links if separated by comma
+                        urls = [u.strip() for u in file_link.split(",")]
+                        for i, url in enumerate(urls):
+                            st.markdown(f"🔗 [📥 View / Download Document {i+1}]({url})")
                     else:
                         st.warning("⚠️ No file link available for this submission.")
 
@@ -154,7 +157,7 @@ if app_mode == "🔍 Search & Browse Bank":
 # 2. PASSWORD-PROTECTED FACULTY UPLOAD PORTAL
 # ==========================================
 elif app_mode == "🔒 Faculty Upload Portal":
-    st.header("Faculty Question Paper Upload Portal")
+    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Question Paper Upload Portal</h3>", unsafe_allow_html=True)
     st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only to prevent spam/junk uploads.*")
     
     # Password text input box
@@ -190,6 +193,7 @@ elif app_mode == "❓ FAQs":
     
     with st.expander("5. Who is allowed to browse and download from this question bank?"):
         st.write("The search and download archive is fully open and accessible to all students and faculty members of Prabhu Jagatbandhu College.")
+
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666666; font-size: 14px;'>"
