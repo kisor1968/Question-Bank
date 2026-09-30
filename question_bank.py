@@ -192,7 +192,7 @@ elif app_mode == "❓ FAQs":
         st.write("Submissions appear almost instantly on the website as soon as the form is submitted and synced with the live archive sheet.")
     
     with st.expander("5. Who is allowed to browse and download from this question bank?"):
-        st.write("The search and download archive is fully open and accessible to all students and faculty members of Prabhu Jagatbandhu College.")
+        st.write("The search and download archive is fully open and accessible to all students and faculty members under University of Calcutta.")
 
 st.markdown("---")
 st.markdown(
