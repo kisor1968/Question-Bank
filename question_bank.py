@@ -158,7 +158,7 @@ elif app_mode == "🔒 Faculty Upload Portal":
     st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only to prevent spam/junk uploads.*")
     
     # Password text input box
-    password_input = st.text_input("Enter Department Faculty Password", type="password")
+    password_input = st.text_input("Enter Faculty Password", type="password")
     
     if password_input == "":
         st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
