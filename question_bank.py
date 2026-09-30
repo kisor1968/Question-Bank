@@ -54,8 +54,8 @@ with header_col1:
         st.write("🎓")
 
 with header_col2:
-    st.title("Prabhu Jagatbandhu College Question Bank & Archive")
-    st.markdown("<p style='color: #334155; font-size: 16px; margin-top: -15px;'>Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Question Bank & Archive</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #334155; font-size: 16px; margin-top: 5px;'>Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -75,7 +75,7 @@ st.sidebar.markdown("""
 # 1. SEARCH & BROWSE QUESTION BANK
 # ==========================================
 if app_mode == "🔍 Search & Browse Bank":
-    st.header("Search & Filter Question Bank")
+    st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
     
     df = load_sheet_data()
     
@@ -176,7 +176,7 @@ elif app_mode == "🔒 Faculty Upload Portal":
 # 3. FREQUENTLY ASKED QUESTIONS (FAQS)
 # ==========================================
 elif app_mode == "❓ FAQs":
-    st.header("Frequently Asked Questions (FAQs)")
+    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
     st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
     
     with st.expander("1. How can I search for a specific question paper?"):
