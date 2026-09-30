@@ -55,7 +55,7 @@ with header_col1:
 
 with header_col2:
     st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Question Bank & Archive</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #334155; font-size: 16px; margin-top: 5px;'>Centralized repository featuring Major, MDC, and University Previous Years' Questions (PYQs).</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #334155; font-size: 16px; margin-top: 5px;'>Centralized repository featuring University Previous Years' Questions (PYQs) for Major, MDC, and Minor.</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
