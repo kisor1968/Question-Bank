@@ -190,3 +190,11 @@ elif app_mode == "❓ FAQs":
     
     with st.expander("5. Who is allowed to browse and download from this question bank?"):
         st.write("The search and download archive is fully open and accessible to all students and faculty members of Prabhu Jagatbandhu College.")
+# Add this near the bottom of your Streamlit app script
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
+    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
+    "</div>", 
+    unsafe_allow_Html=True
+)
