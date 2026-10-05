@@ -85,53 +85,53 @@ if app_mode == "🔍 Search & Browse Bank":
         # Clean column names
         df.columns = df.columns.str.strip()
         
-        # Dynamically find column names based on common headers
-        dept_col = next((col for col in df.columns if 'department' in col.lower()), None)
-        sem_col = next((col for col in df.columns if 'semester' in col.lower()), None)
-        year_col = next((col for col in df.columns if 'year' in col.lower()), None)
-        ug_pg_col = next((col for col in df.columns if 'ug' in col.lower() or 'pg' in col.lower() or 'level' in col.lower()), None)
-        ccf_cbcs_col = next((col for col in df.columns if 'ccf' in col.lower() or 'cbcs' in col.lower() or 'system' in col.lower()), None)
+        # Robust dynamic column finders
+        dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+        sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
+        year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
         
         # Filter controls layout - Row 1
         f_col1, f_col2, f_col3 = st.columns(3)
         
         with f_col1:
-            dept_options = ["All"] + list(df[dept_col].dropna().unique()) if dept_col else ["All"]
+            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
             selected_dept = st.selectbox("Department", dept_options)
             
         with f_col2:
-            sem_options = ["All"] + list(df[sem_col].dropna().unique()) if sem_col else ["All"]
+            sem_options = ["All"] + sorted(df[sem_col].dropna().unique().tolist()) if sem_col and sem_col in df.columns else ["All"]
             selected_sem = st.selectbox("Semester", sem_options)
             
         with f_col3:
-            year_options = ["All"] + list(df[year_col].dropna().unique()) if year_col else ["All"]
+            year_options = ["All"] + sorted(df[year_col].dropna().unique().tolist()) if year_col and year_col in df.columns else ["All"]
             selected_year = st.selectbox("Year of Examination", year_options)
 
         # Filter controls layout - Row 2
         f_col4, f_col5, f_col6 = st.columns(3)
 
         with f_col4:
-            ug_pg_options = ["All"] + list(df[ug_pg_col].dropna().unique()) if ug_pg_col else ["All"]
+            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
             selected_ug_pg = st.selectbox("UG / PG", ug_pg_options)
 
         with f_col5:
-            ccf_cbcs_options = ["All"] + list(df[ccf_cbcs_col].dropna().unique()) if ccf_cbcs_col else ["All"]
+            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
             selected_ccf_cbcs = st.selectbox("CCF / CBCS", ccf_cbcs_options)
 
         with f_col6:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
-        # Apply filters
+        # Apply filters safely
         filtered_df = df.copy()
-        if selected_dept != "All" and dept_col:
+        if selected_dept != "All" and dept_col and dept_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
-        if selected_sem != "All" and sem_col:
+        if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
-        if selected_year != "All" and year_col:
+        if selected_year != "All" and year_col and year_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[year_col] == selected_year]
-        if selected_ug_pg != "All" and ug_pg_col:
+        if selected_ug_pg != "All" and ug_pg_col and ug_pg_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
-        if selected_ccf_cbcs != "All" and ccf_cbcs_col:
+        if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ccf_cbcs_col] == selected_ccf_cbcs]
         if search_text:
             mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
@@ -145,9 +145,9 @@ if app_mode == "🔍 Search & Browse Bank":
         else:
             for index, row in filtered_df.iterrows():
                 with st.container(border=True):
-                    dept_val = row[dept_col] if dept_col and dept_col in row else "N/A"
-                    sem_val = row[sem_col] if sem_col and sem_col in row else "N/A"
-                    year_val = row[year_col] if year_col and year_col in row else "N/A"
+                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
+                    sem_val = row[sem_col] if sem_col and sem_col in row and pd.notna(row[sem_col]) else "N/A"
+                    year_val = row[year_col] if year_col and year_col in row and pd.notna(row[year_col]) else "N/A"
                     
                     paper_info = row.iloc[2] if len(row) > 2 else "Question Paper"
                     
