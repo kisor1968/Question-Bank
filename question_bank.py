@@ -91,6 +91,7 @@ if app_mode == "🔍 Search & Browse Bank":
         year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
         ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
         ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
         
         # Filter controls layout - Row 1
         f_col1, f_col2, f_col3 = st.columns(3)
@@ -108,7 +109,7 @@ if app_mode == "🔍 Search & Browse Bank":
             selected_year = st.selectbox("Year of Examination", year_options)
 
         # Filter controls layout - Row 2
-        f_col4, f_col5, f_col6 = st.columns(3)
+        f_col4, f_col5, f_col6, f_col7 = st.columns(4)
 
         with f_col4:
             ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
@@ -119,6 +120,10 @@ if app_mode == "🔍 Search & Browse Bank":
             selected_ccf_cbcs = st.selectbox("CCF / CBCS", ccf_cbcs_options)
 
         with f_col6:
+            struct_options = ["All"] + sorted(df[course_struct_col].dropna().unique().tolist()) if course_struct_col and course_struct_col in df.columns else ["All"]
+            selected_struct = st.selectbox("Course Structure", struct_options)
+
+        with f_col7:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
         # Apply filters safely
@@ -133,6 +138,8 @@ if app_mode == "🔍 Search & Browse Bank":
             filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
         if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ccf_cbcs_col] == selected_ccf_cbcs]
+        if selected_struct != "All" and course_struct_col and course_struct_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[course_struct_col] == selected_struct]
         if search_text:
             mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
             filtered_df = filtered_df[mask]
@@ -161,12 +168,14 @@ if app_mode == "🔍 Search & Browse Bank":
                     
                     st.markdown(f"**Paper Details:** {paper_info}")
                     
-                    # Build caption dynamically including UG/PG and CCF/CBCS if present
+                    # Build caption dynamically including UG/PG, CCF/CBCS, and Course Structure if present
                     caption_parts = [f"📂 **Dept:** {dept_val}", f"📚 **Semester:** {sem_val}", f"📅 **Year:** `{year_val}`"]
                     if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]):
                         caption_parts.append(f"🎓 **Level:** {row[ug_pg_col]}")
                     if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]):
                         caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
+                    if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
+                        caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
                     st.caption(" | ".join(caption_parts))
                     
                     if pd.notna(file_link) and file_link.startswith("http"):
@@ -204,7 +213,7 @@ elif app_mode == "❓ FAQs":
     st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
     
     with st.expander("1. How can I search for a specific question paper?"):
-        st.write("Navigate to the **Search & Browse Bank** tab. Use the dropdown filters to choose your Department, Semester, Year, UG/PG level, or CCF/CBCS system, or type a paper code into the keyword search box.")
+        st.write("Navigate to the **Search & Browse Bank** tab. Use the dropdown filters to choose your Department, Semester, Year, UG/PG level, CCF/CBCS system, or Course Structure, or type a paper code into the keyword search box.")
     
     with st.expander("2. Why is the upload portal password-protected?"):
         st.write("To ensure that only verified previous years' question papers from authorized faculty members are added, protecting the database from spam, junk uploads, and unauthorized files.")
