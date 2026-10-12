@@ -105,7 +105,8 @@ if app_mode == "🔍 Search & Browse Bank":
             selected_sem = st.selectbox("Semester", sem_options)
             
         with f_col3:
-            year_options = ["All"] + sorted(df[year_col].dropna().unique().tolist()) if year_col and year_col in df.columns else ["All"]
+            # Predefined range starting from 2022 up to current year (2026)
+            year_options = ["All"] + [str(y) for y in range(2022, 2027)]
             selected_year = st.selectbox("Year of Examination", year_options)
 
         # Filter controls layout - Row 2
@@ -133,7 +134,7 @@ if app_mode == "🔍 Search & Browse Bank":
         if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
         if selected_year != "All" and year_col and year_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[year_col] == selected_year]
+            filtered_df = filtered_df[filtered_df[year_col].astype(str).str.contains(selected_year, na=False)]
         if selected_ug_pg != "All" and ug_pg_col and ug_pg_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
         if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
