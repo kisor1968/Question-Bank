@@ -251,22 +251,3 @@ elif app_mode == "🔍 Search & Browse Question Bank":
         res_col1, res_col2 = st.columns([7, 3], vertical_alignment="center")
         with res_col1:
             st.subheader(f"Question Papers Found: {len(filtered_df)}")
-        with res_col2:
-            if not filtered_df.empty:
-                csv_data = filtered_df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Export Filtered CSV",
-                    data=csv_data,
-                    file_name="pjc_question_papers_export.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-        
-        if filtered_df.empty:
-            st.info("No question papers found matching your criteria.")
-        else:
-            for index, row in filtered_df.iterrows():
-                with st.container(border=True):
-                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
-                    sem_val = row[sem_col] if sem_col and sem_col in row and pd.notna(row[sem_col]) else "N/A"
-                    year_val = row[year_col] if year_col and year_col
