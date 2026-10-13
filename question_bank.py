@@ -8,43 +8,29 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for light blue background, blue theme accents, and header alignment
 st.markdown("""
 <style>
-    /* Main app background color */
-    .stApp {
-        background-color: #EBF4FF;
-    }
-    
-    /* Sidebar background styling */
-    [data-testid="stSidebar"] {
-        background-color: #D6E4FD;
-    }
-    
-    /* Headers and text styling */
-    h1, h2, h3 {
-        color: #1E3A8A;
-    }
+    .stApp { background-color: #EBF4FF; }
+    [data-testid="stSidebar"] { background-color: #D6E4FD; }
+    h1, h2, h3 { color: #1E3A8A; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- GOOGLE SHEET CONFIGURATION ---
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform"
+FACULTY_PASSWORD = "PJC_Faculty@2026"
 
-# --- FACULTY PASSWORD CONFIGURATION ---
-FACULTY_PASSWORD = "PJC_Faculty@2026"  # You can change this password anytime here
-
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=10) # Shortened TTL for testing so updates show instantly
 def load_sheet_data():
-    if not SHEET_CSV_URL or "YOUR_PUBLISHED" in SHEET_CSV_URL:
+    if not SHEET_CSV_URL:
         return pd.DataFrame()
     try:
         return pd.read_csv(SHEET_CSV_URL)
-    except Exception:
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
         return pd.DataFrame()
 
-# Helper function to convert standard Google Drive view links to embeddable preview links
 def get_embeddable_url(url):
     if not url or not isinstance(url, str):
         return ""
@@ -58,22 +44,17 @@ def get_embeddable_url(url):
             return f"https://drive.google.com/file/d/{file_id}/preview"
     return url
 
-# --- TOP HEADER WITH LOGO & TITLE ---
+# --- TOP HEADER ---
 header_col1, header_col2 = st.columns([1, 9], vertical_alignment="center")
-
 with header_col1:
-    try:
-        st.image("logo_pjc.png", width=90)
-    except Exception:
-        st.write("🎓")
-
+    st.write("🎓")
 with header_col2:
     st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Academic Repository</h2>", unsafe_allow_html=True)
     st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs) and Departmental Syllabi (CBCS & CCF).</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- SIDEBAR NAVIGATION & GUIDE ---
+# --- SIDEBAR ---
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", [
     "🏠 Home & Overview",
@@ -83,21 +64,21 @@ app_mode = st.sidebar.radio("Select View:", [
     "❓ FAQs"
 ])
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("📖 Quick Guide")
-st.sidebar.markdown("""
-1. **Explore Home**: Check live repository metrics and recent additions.
-2. **Search**: Filter question papers or syllabi by department and curriculum.
-3. **Faculty Upload**: Secure login required to upload verified documents.
-""")
-
-# ==========================================
-# LOAD DATA & COMPUTE METRICS GLOBALLY
-# ==========================================
+# Load Data
 df = load_sheet_data()
+
+# Sidebar Debugger to help you see what columns Streamlit detected
+with st.sidebar.expander("🛠️ Admin Data Debugger"):
+    if df.empty:
+        st.warning("DataFrame is empty. Check Google Sheet publishing.")
+    else:
+        st.write(f"Total Rows: {len(df)}")
+        st.write("Columns found:", df.columns.tolist())
+
 if not df.empty:
     df.columns = df.columns.str.strip()
-    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+    # Flexible column matchers
+    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), df.columns[1] if len(df.columns)>1 else None)
     doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
     
     total_docs = len(df)
@@ -111,81 +92,29 @@ if not df.empty:
     total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
 else:
     total_qp, total_syl, total_depts = 0, 0, 0
+    dept_col, doc_type_col = None, None
 
 # ==========================================
-# 0. HOME & DYNAMIC FRONTAL OVERVIEW
+# 0. HOME & OVERVIEW
 # ==========================================
 if app_mode == "🏠 Home & Overview":
-    
-    # 1. Stunning Hero Banner
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px;">
         <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
-        <p style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">
-            Your centralized institutional gateway for Prabhu Jagatbandhu College University Question Papers (PYQs) and Departmental Syllabi (CBCS & CCF).
-        </p>
+        <p style="font-size: 16px; opacity: 0.9;">Your centralized institutional gateway for University Question Papers and Departmental Syllabi.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # 2. Perfectly Aligned Custom Metric Cards
-    st.markdown(f"""
-    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
-        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
-            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📁 Question Papers Archived</div>
-            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_qp}</div>
-        </div>
-        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
-            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📚 Syllabi Available</div>
-            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_syl}</div>
-        </div>
-        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
-            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">🏛️ Active Departments</div>
-            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_depts}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Metrics
+    m1, m2, m3 = st.columns(3)
+    m1.metric("📁 Question Papers", total_qp)
+    m2.metric("📚 Syllabi", total_syl)
+    m3.metric("🏛️ Departments", total_depts)
 
-    # 3. Quick Action Hub (Columns layout)
-    st.subheader("⚡ Quick Portal Navigation")
-    q_col1, q_col2, q_col3 = st.columns(3)
-    
-    with q_col1:
-        with st.container(border=True):
-            st.markdown("### 🔍 Question Bank")
-            st.write("Browse and filter past university question papers by semester, year, and department.")
-            st.info("👈 Select **Search & Browse** in the sidebar to begin.")
-                
-    with q_col2:
-        with st.container(border=True):
-            st.markdown("### 📚 Syllabi Archive")
-            st.write("Access official curriculum and syllabi structured by CBCS and CCF frameworks.")
-            st.info("👈 Select **Syllabi Archive** in the sidebar.")
-                
-    with q_col3:
-        with st.container(border=True):
-            st.markdown("### 🔒 Faculty Portal")
-            st.write("Secure, password-protected upload gateway for authorized department faculty.")
-            st.info("👈 Select **Faculty Upload Portal** in the sidebar.")
-
-    # 4. Department Distribution Chart & Recent Additions
-    if not df.empty and dept_col and dept_col in df.columns:
+    if not df.empty and dept_col:
         st.markdown("---")
-        chart_col1, chart_col2 = st.columns([1, 1], vertical_alignment="top")
-        
-        with chart_col1:
-            st.subheader("📊 Submissions by Department")
-            dept_counts = df[dept_col].value_counts()
-            st.bar_chart(dept_counts, color="#3B82F6")
-            
-        with chart_col2:
-            st.subheader("📢 Recently Added Documents")
-            recent_df = df.tail(3).iloc[::-1]
-            for _, row in recent_df.iterrows():
-                with st.container(border=True):
-                    doc_title = row.iloc[2] if len(row) > 2 else "Academic Document"
-                    dept_name = row[dept_col] if pd.notna(row[dept_col]) else "General"
-                    st.markdown(f"✨ **{doc_title}**")
-                    st.caption(f"📂 Department of {dept_name}")
+        st.subheader("📊 Submissions by Department")
+        st.bar_chart(df[dept_col].value_counts(), color="#3B82F6")
 
 # ==========================================
 # 1. SEARCH & BROWSE QUESTION BANK
@@ -194,69 +123,70 @@ elif app_mode == "🔍 Search & Browse Question Bank":
     st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
     
     if df.empty:
-        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
+        st.warning("⚠️ No data found in the Google Sheet. Make sure your sheet is published to the web as CSV.")
     else:
-        # Robust dynamic column finders
-        sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
-        year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
-        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
-        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
-        course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
+        # Simple fallback filters that won't break if column names vary
+        col_names = df.columns.tolist()
         
-        # Filter controls layout - Row 1
-        f_col1, f_col2, f_col3 = st.columns(3)
-        
-        with f_col1:
-            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
-            selected_dept = st.selectbox("Department", dept_options)
-            
-        with f_col2:
-            sem_options = ["All"] + sorted(df[sem_col].dropna().unique().tolist()) if sem_col and sem_col in df.columns else ["All"]
-            selected_sem = st.selectbox("Semester", sem_options)
-            
-        with f_col3:
-            year_options = ["All"] + [str(y) for y in range(2022, 2027)]
-            selected_year = st.selectbox("Year of Examination", year_options)
+        f1, f2 = st.columns(2)
+        with f1:
+            selected_dept = st.selectbox("Department", ["All"] + sorted(df[dept_col].dropna().unique().tolist())) if dept_col else "All"
+        with f2:
+            search_query = st.text_input("Search Keyword", placeholder="Type paper code or title...")
 
-        # Filter controls layout - Row 2
-        f_col4, f_col5, f_col6, f_col7 = st.columns(4)
-
-        with f_col4:
-            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
-            selected_ug_pg = st.selectbox("UG / PG", ug_pg_options)
-
-        with f_col5:
-            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
-            selected_ccf_cbcs = st.selectbox("CCF / CBCS", ccf_cbcs_options)
-
-        with f_col6:
-            struct_options = ["All"] + sorted(df[course_struct_col].dropna().unique().tolist()) if course_struct_col and course_struct_col in df.columns else ["All"]
-            selected_struct = st.selectbox("Course Structure", struct_options)
-
-        with f_col7:
-            search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
-            
-        # Apply filters safely (Exclude syllabi)
         filtered_df = df.copy()
-        if doc_type_col and doc_type_col in filtered_df.columns:
-            filtered_df = filtered_df[~filtered_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
-            
-        if selected_dept != "All" and dept_col and dept_col in filtered_df.columns:
+        if selected_dept != "All" and dept_col:
             filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
-        if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
-        if selected_year != "All" and year_col and year_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[year_col].astype(str).str.contains(selected_year, na=False)]
-        if selected_ug_pg != "All" and ug_pg_col and ug_pg_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
-        if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[ccf_cbcs_col] == selected_ccf_cbcs]
-        if selected_struct != "All" and course_struct_col and course_struct_col in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df[course_struct_col] == selected_struct]
-        if search_text:
-            mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
+        if search_query:
+            mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_query, case=False)).any(axis=1)
             filtered_df = filtered_df[mask]
-            
+
         st.markdown("---")
-        
-        # Results header &
+        st.subheader(f"Matching Documents: {len(filtered_df)}")
+
+        if filtered_df.empty:
+            st.info("No documents match your filter criteria.")
+        else:
+            for idx, row in filtered_df.iterrows():
+                with st.container(border=True):
+                    st.write(dict(row)) # Displays all row data so you can verify columns instantly
+                    
+                    # Find any column starting with http
+                    file_link = next((str(row[c]) for c in df.columns if str(row[c]).startswith("http")), "")
+                    if file_link:
+                        st.markdown(f"🔗 [Open Document Link]({file_link})")
+                        with st.expander("👁️ Preview Inside App"):
+                            embed_url = get_embeddable_url(file_link)
+                            st.markdown(f'<iframe src="{embed_url}" width="100%" height="450px" style="border:none;"></iframe>', unsafe_allow_html=True)
+
+# ==========================================
+# 2. SYLLABI ARCHIVE
+# ==========================================
+elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
+    st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive</h3>", unsafe_allow_html=True)
+    if df.empty:
+        st.warning("⚠️ No data available.")
+    else:
+        st.write("Switch to the Search tab or check your published sheet data to view syllabus records.")
+
+# ==========================================
+# 3. FACULTY UPLOAD PORTAL
+# ==========================================
+elif app_mode == "🔒 Faculty Upload Portal":
+    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
+    password = st.text_input("Enter Faculty Password", type="password")
+    
+    if password == FACULTY_PASSWORD:
+        st.success("✅ Access Granted!")
+        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
+    elif password != "":
+        st.error("❌ Incorrect password. (Hint: PJC_Faculty@2026)")
+    else:
+        st.info("ℹ️ Enter the password to unlock the upload form button.")
+
+# ==========================================
+# 4. FAQS
+# ==========================================
+elif app_mode == "❓ FAQs":
+    st.markdown("<h3 style='color: #1E3A8A;'>FAQs</h3>", unsafe_allow_html=True)
+    st.write("Check your sidebar debugger if data isn't populating as expected.")
