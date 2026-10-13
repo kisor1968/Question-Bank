@@ -76,6 +76,7 @@ st.markdown("---")
 # --- SIDEBAR NAVIGATION & GUIDE ---
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", [
+    "🏠 Home & Overview",
     "🔍 Search & Browse Question Bank", 
     "📚 Syllabi Archive (CBCS & CCF)", 
     "🔒 Faculty Upload Portal", 
@@ -85,8 +86,8 @@ app_mode = st.sidebar.radio("Select View:", [
 st.sidebar.markdown("---")
 st.sidebar.subheader("📖 Quick Guide")
 st.sidebar.markdown("""
-1. **Search**: Filter question papers or syllabi by department and curriculum.
-2. **Preview**: Expand any document card to view the PDF directly inside the app.
+1. **Explore Home**: Check live repository metrics and recent additions.
+2. **Search**: Filter question papers or syllabi by department and curriculum.
 3. **Faculty Upload**: Secure login required to upload verified documents.
 """)
 
@@ -112,14 +113,23 @@ else:
     total_qp, total_syl, total_depts = 0, 0, 0
 
 # ==========================================
-# 1. SEARCH & BROWSE QUESTION BANK
+# 0. HOME & DYNAMIC FRONTAL OVERVIEW
 # ==========================================
-if app_mode == "🔍 Search & Browse Question Bank":
-    st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
+if app_mode == "🏠 Home & Overview":
     
-    # Perfectly Aligned Custom Metric Cards
+    # 1. Stunning Hero Banner
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
+        <p style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">
+            Your centralized institutional gateway for Prabhu Jagatbandhu College University Question Papers (PYQs) and Departmental Syllabi (CBCS & CCF).
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. Perfectly Aligned Custom Metric Cards
     st.markdown(f"""
-    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
         <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
             <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📁 Question Papers Archived</div>
             <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_qp}</div>
@@ -134,6 +144,54 @@ if app_mode == "🔍 Search & Browse Question Bank":
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # 3. Quick Action Hub (Columns layout)
+    st.subheader("⚡ Quick Portal Navigation")
+    q_col1, q_col2, q_col3 = st.columns(3)
+    
+    with q_col1:
+        with st.container(border=True):
+            st.markdown("### 🔍 Question Bank")
+            st.write("Browse and filter past university question papers by semester, year, and department.")
+            st.info("👈 Select **Search & Browse** in the sidebar to begin.")
+                
+    with q_col2:
+        with st.container(border=True):
+            st.markdown("### 📚 Syllabi Archive")
+            st.write("Access official curriculum and syllabi structured by CBCS and CCF frameworks.")
+            st.info("👈 Select **Syllabi Archive** in the sidebar.")
+                
+    with q_col3:
+        with st.container(border=True):
+            st.markdown("### 🔒 Faculty Portal")
+            st.write("Secure, password-protected upload gateway for authorized department faculty.")
+            st.info("👈 Select **Faculty Upload Portal** in the sidebar.")
+
+    # 4. Department Distribution Chart & Recent Additions
+    if not df.empty and dept_col and dept_col in df.columns:
+        st.markdown("---")
+        chart_col1, chart_col2 = st.columns([1, 1], vertical_alignment="top")
+        
+        with chart_col1:
+            st.subheader("📊 Submissions by Department")
+            dept_counts = df[dept_col].value_counts()
+            st.bar_chart(dept_counts, color="#3B82F6")
+            
+        with chart_col2:
+            st.subheader("📢 Recently Added Documents")
+            recent_df = df.tail(3).iloc[::-1]
+            for _, row in recent_df.iterrows():
+                with st.container(border=True):
+                    doc_title = row.iloc[2] if len(row) > 2 else "Academic Document"
+                    dept_name = row[dept_col] if pd.notna(row[dept_col]) else "General"
+                    st.markdown(f"✨ **{doc_title}**")
+                    st.caption(f"📂 Department of {dept_name}")
+
+# ==========================================
+# 1. SEARCH & BROWSE QUESTION BANK
+# ==========================================
+elif app_mode == "🔍 Search & Browse Question Bank":
+    st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
     
     if df.empty:
         st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
@@ -236,76 +294,4 @@ if app_mode == "🔍 Search & Browse Question Bank":
                     
                     st.markdown(f"**Paper Details:** {paper_info}")
                     
-                    caption_parts = [f"📂 **Dept:** {dept_val}", f"📚 **Semester:** {sem_val}", f"📅 **Year:** `{year_val}`"]
-                    if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]):
-                        caption_parts.append(f"🎓 **Level:** {row[ug_pg_col]}")
-                    if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]):
-                        caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
-                    if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
-                        caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
-                    st.caption(" | ".join(caption_parts))
-                    
-                    if pd.notna(file_link) and file_link.startswith("http"):
-                        urls = [u.strip() for u in file_link.split(",")]
-                        for i, url in enumerate(urls):
-                            st.markdown(f"🔗 [📥 Open External Link {i+1}]({url})")
-                    else:
-                        st.warning("⚠️ No file link available for this submission.")
-
-                    # Direct Document Preview Expander
-                    if pd.notna(file_link) and file_link.startswith("http"):
-                        with st.expander("👁️ Preview Document Inside App"):
-                            embed_url = get_embeddable_url(file_link.split(",")[0])
-                            st.markdown(
-                                f'<iframe src="{embed_url}" width="100%" height="550px" style="border: none; border-radius: 8px;"></iframe>',
-                                unsafe_allow_html=True
-                            )
-
-# ==========================================
-# 2. SYLLABI ARCHIVE (CBCS & CCF - Department Only)
-# ==========================================
-elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
-    st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
-    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system (CBCS / CCF), and level.")
-    
-    if df.empty:
-        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
-    else:
-        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
-        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
-        
-        # Filter controls for Syllabi
-        s_col1, s_col2, s_col3 = st.columns(3)
-        with s_col1:
-            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
-            selected_syllabus_dept = st.selectbox("Department", dept_options, key="syl_dept")
-            
-        with s_col2:
-            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
-            selected_syllabus_system = st.selectbox("Curriculum System", ccf_cbcs_options, key="syl_sys")
-
-        with s_col3:
-            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
-            selected_syllabus_level = st.selectbox("Level / Program", ug_pg_options, key="syl_lvl")
-            
-        # Filter dataframe specifically for Syllabi
-        filtered_syl_df = df.copy()
-        if doc_type_col and doc_type_col in filtered_syl_df.columns:
-            filtered_syl_df = filtered_syl_df[filtered_syl_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
-        
-        if selected_syllabus_dept != "All" and dept_col and dept_col in filtered_syl_df.columns:
-            filtered_syl_df = filtered_syl_df[filtered_syl_df[dept_col] == selected_syllabus_dept]
-        if selected_syllabus_system != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl_df.columns:
-            filtered_syl_df = filtered_syl_df[filtered_syl_df[ccf_cbcs_col] == selected_syllabus_system]
-        if selected_syllabus_level != "All" and ug_pg_col and ug_pg_col in filtered_syl_df.columns:
-            filtered_syl_df = filtered_syl_df[filtered_syl_df[ug_pg_col] == selected_syllabus_level]
-            
-        st.markdown("---")
-        
-        # Syllabi header & CSV Export button row
-        s_res1, s_res2 = st.columns([7, 3], vertical_alignment="center")
-        with s_res1:
-            st.subheader(f"Syllabi Found: {len(filtered_syl_df)}")
-        with s_res2:
-            if not filtered_syl_df.empty:
-                syl_csv
+                    caption_parts =
