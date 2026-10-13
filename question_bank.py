@@ -187,7 +187,6 @@ elif app_mode == "🔍 Search & Browse Question Bank":
     if df.empty:
         st.warning("⚠️ No data found in the Google Sheet. Please check your CSV publishing link.")
     else:
-        # Dynamic column matchers for comprehensive filters
         sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
         year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
         ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
@@ -383,29 +382,4 @@ elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
                             embed_url = get_embeddable_url(str(file_link))
                             st.markdown(
                                 f'<iframe src="{embed_url}" width="100%" height="500px" style="border: none; border-radius: 8px;"></iframe>',
-                                unsafe_allow_html=True
-                            )
-
-# ==========================================
-# 3. FACULTY UPLOAD PORTAL
-# ==========================================
-elif app_mode == "🔒 Faculty Upload Portal":
-    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
-    st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only.*")
-    
-    password_input = st.text_input("Enter Faculty Password", type="password")
-    
-    if password_input == "":
-        st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
-    elif password_input == FACULTY_PASSWORD:
-        st.success("✅ Access Granted! You are authenticated as department faculty.")
-        st.markdown("Use the secure submission link below to upload verified question papers or syllabi:")
-        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
-    else:
-        st.error("❌ Incorrect password.")
-
-# ==========================================
-# 4. FREQUENTLY ASKED QUESTIONS (FAQS)
-# ==========================================
-elif app_mode == "❓ FAQs":
-    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_
+                                unsafe
