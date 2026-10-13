@@ -186,7 +186,21 @@ if app_mode == "🔍 Search & Browse Question Bank":
             filtered_df = filtered_df[mask]
             
         st.markdown("---")
-        st.subheader(f"Question Papers Found: {len(filtered_df)}")
+        
+        # Results header & CSV Export button row
+        res_col1, res_col2 = st.columns([7, 3], vertical_alignment="center")
+        with res_col1:
+            st.subheader(f"Question Papers Found: {len(filtered_df)}")
+        with res_col2:
+            if not filtered_df.empty:
+                csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Export Filtered CSV",
+                    data=csv_data,
+                    file_name="pjc_question_papers_export.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
         
         if filtered_df.empty:
             st.info("No question papers found matching your criteria.")
@@ -264,74 +278,11 @@ elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
             filtered_syl_df = filtered_syl_df[filtered_syl_df[ug_pg_col] == selected_syllabus_level]
             
         st.markdown("---")
-        st.subheader(f"Syllabi Found: {len(filtered_syl_df)}")
         
-        if filtered_syl_df.empty:
-            st.info("No syllabi found matching your criteria. Faculty can upload syllabi using the Upload Portal.")
-        else:
-            for index, row in filtered_syl_df.iterrows():
-                with st.container(border=True):
-                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
-                    system_val = row[ccf_cbcs_col] if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]) else "N/A"
-                    level_val = row[ug_pg_col] if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]) else "N/A"
-                    
-                    doc_info = row.iloc[2] if len(row) > 2 else "Department Syllabus"
-                    
-                    file_link = ""
-                    for col in df.columns:
-                        val = str(row[col])
-                        if val.startswith("http"):
-                            file_link = val
-                            break
-                            
-                    st.markdown(f"**Document Title:** {doc_info}")
-                    st.caption(f"📂 **Dept:** {dept_val} | ⚙️ **System:** {system_val} | 🎓 **Level:** {level_val}")
-                    
-                    if pd.notna(file_link) and file_link.startswith("http"):
-                        urls = [u.strip() for u in file_link.split(",")]
-                        for i, url in enumerate(urls):
-                            st.markdown(f"🔗 [📥 View / Download Syllabus {i+1}]({url})")
-                    else:
-                        st.warning("⚠️ No file link available.")
-
-# ==========================================
-# 3. PASSWORD-PROTECTED FACULTY UPLOAD PORTAL
-# ==========================================
-elif app_mode == "🔒 Faculty Upload Portal":
-    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
-    st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only to upload Question Papers and Syllabi.*")
-    
-    password_input = st.text_input("Enter Faculty Password", type="password")
-    
-    if password_input == "":
-        st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
-    elif password_input == FACULTY_PASSWORD:
-        st.success("✅ Access Granted! You are authenticated as department faculty.")
-        st.markdown("Use the secure submission link below to upload verified question papers or syllabi:")
-        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
-    else:
-        st.error("❌ Incorrect password. Please contact the college administrator if you need assistance.")
-
-# ==========================================
-# 4. FREQUENTLY ASKED QUESTIONS (FAQS)
-# ==========================================
-elif app_mode == "❓ FAQs":
-    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
-    st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
-    
-    with st.expander("1. How can I search for a specific syllabus or question paper?"):
-        st.write("Use the sidebar to switch between the **Search & Browse Question Bank** and **Syllabi Archive** tabs. Syllabi can be searched cleanly by Department and Curriculum System (CBCS or CCF).")
-    
-    with st.expander("2. Do syllabi require semester or year inputs?"):
-        st.write("No. Syllabi are structured by department and curriculum system rather than individual examination years or semesters.")
-    
-    with st.expander("3. Why is the upload portal password-protected?"):
-        st.write("To protect the institutional repository from spam and ensure only verified academic documents are published.")
-
-st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
-    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
-    "</div>", 
-    unsafe_allow_html=True
-)
+        # Syllabi header & CSV Export button row
+        s_res1, s_res2 = st.columns([7, 3], vertical_alignment="center")
+        with s_res1:
+            st.subheader(f"Syllabi Found: {len(filtered_syl_df)}")
+        with s_res2:
+            if not filtered_syl_df.empty:
+                syl_csv_data = filtered_syl_df.to_csv(index=False).encode('utf
