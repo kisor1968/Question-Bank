@@ -31,6 +31,7 @@ st.markdown("""
 # --- GOOGLE SHEET CONFIGURATION ---
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform"
+REPORT_ISSUE_FORM_URL = "https://docs.google.com/forms/d/e/YOUR_REPORT_FORM_ID/viewform" 
 
 # --- FACULTY PASSWORD CONFIGURATION ---
 FACULTY_PASSWORD = "PJC_Faculty@2026"  # You can change this password anytime here
@@ -43,6 +44,22 @@ def load_sheet_data():
         return pd.read_csv(SHEET_CSV_URL)
     except Exception:
         return pd.DataFrame()
+
+# Helper function to convert standard Google Drive view links to embeddable preview links
+def get_embeddable_url(url):
+    if not url or not isinstance(url, str):
+        return ""
+    # Clean up URL
+    url = url.strip()
+    # If it's a google drive file link, convert to preview/embed format
+    if "drive.google.com" in url:
+        if "/file/d/" in url:
+            file_id = url.split("/file/d/")[1].split("/")[0]
+            return f"https://drive.google.com/file/d/{file_id}/preview"
+        elif "id=" in url:
+            file_id = url.split("id=")[1].split("&")[0]
+            return f"https://drive.google.com/file/d/{file_id}/preview"
+    return url
 
 # --- TOP HEADER WITH LOGO & TITLE ---
 header_col1, header_col2 = st.columns([1, 9], vertical_alignment="center")
@@ -72,7 +89,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📖 Quick Guide")
 st.sidebar.markdown("""
 1. **Search**: Filter question papers or syllabi by department and curriculum.
-2. **Download**: Click the view/download link under any document.
+2. **Preview**: Expand any document card to view the PDF directly inside the app.
 3. **Faculty Upload**: Secure login required to upload verified documents.
 """)
 
@@ -231,9 +248,167 @@ if app_mode == "🔍 Search & Browse Question Bank":
                         caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
                     st.caption(" | ".join(caption_parts))
                     
+                    # Action buttons layout
+                    link_col, report_col = st.columns([8, 2], vertical_alignment="center")
+                    with link_col:
+                        if pd.notna(file_link) and file_link.startswith("http"):
+                            urls = [u.strip() for u in file_link.split(",")]
+                            for i, url in enumerate(urls):
+                                st.markdown(f"🔗 [📥 Open External Link {i+1}]({url})")
+                        else:
+                            st.warning("⚠️ No file link available for this submission.")
+                    with report_col:
+                        st.link_button("⚠️ Report Link", REPORT_ISSUE_FORM_URL, use_container_width=True, key=f"rep_qp_{index}")
+
+                    # Direct Document Preview Expander
                     if pd.notna(file_link) and file_link.startswith("http"):
-                        urls = [u.strip() for u in file_link.split(",")]
-                        for i, url in enumerate(urls):
-                            st.markdown(f"🔗 [📥 View / Download Document {i+1}]({url})")
-                    else:
-                        st.warning("⚠️ No file link available for this submission.")
+                        with st.expander("👁️ Preview Document Inside App"):
+                            embed_url = get_embeddable_url(file_link.split(",")[0])
+                            st.markdown(
+                                f'<iframe src="{embed_url}" width="100%" height="550px" style="border: none; border-radius: 8px;"></iframe>',
+                                unsafe_allow_html=True
+                            )
+
+# ==========================================
+# 2. SYLLABI ARCHIVE (CBCS & CCF - Department Only)
+# ==========================================
+elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
+    st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
+    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system (CBCS / CCF), and level.")
+    
+    if df.empty:
+        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
+    else:
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        
+        # Filter controls for Syllabi
+        s_col1, s_col2, s_col3 = st.columns(3)
+        with s_col1:
+            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
+            selected_syllabus_dept = st.selectbox("Department", dept_options, key="syl_dept")
+            
+        with s_col2:
+            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
+            selected_syllabus_system = st.selectbox("Curriculum System", ccf_cbcs_options, key="syl_sys")
+
+        with s_col3:
+            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
+            selected_syllabus_level = st.selectbox("Level / Program", ug_pg_options, key="syl_lvl")
+            
+        # Filter dataframe specifically for Syllabi
+        filtered_syl_df = df.copy()
+        if doc_type_col and doc_type_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
+        
+        if selected_syllabus_dept != "All" and dept_col and dept_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[dept_col] == selected_syllabus_dept]
+        if selected_syllabus_system != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[ccf_cbcs_col] == selected_syllabus_system]
+        if selected_syllabus_level != "All" and ug_pg_col and ug_pg_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[ug_pg_col] == selected_syllabus_level]
+            
+        st.markdown("---")
+        
+        # Syllabi header & CSV Export button row
+        s_res1, s_res2 = st.columns([7, 3], vertical_alignment="center")
+        with s_res1:
+            st.subheader(f"Syllabi Found: {len(filtered_syl_df)}")
+        with s_res2:
+            if not filtered_syl_df.empty:
+                syl_csv_data = filtered_syl_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Export Filtered CSV",
+                    data=syl_csv_data,
+                    file_name="pjc_syllabi_export.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="syl_csv_btn"
+                )
+        
+        if filtered_syl_df.empty:
+            st.info("No syllabi found matching your criteria. Faculty can upload syllabi using the Upload Portal.")
+        else:
+            for index, row in filtered_syl_df.iterrows():
+                with st.container(border=True):
+                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
+                    system_val = row[ccf_cbcs_col] if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]) else "N/A"
+                    level_val = row[ug_pg_col] if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]) else "N/A"
+                    
+                    doc_info = row.iloc[2] if len(row) > 2 else "Department Syllabus"
+                    
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                            
+                    st.markdown(f"**Document Title:** {doc_info}")
+                    st.caption(f"📂 **Dept:** {dept_val} | ⚙️ **System:** {system_val} | 🎓 **Level:** {level_val}")
+                    
+                    # Action buttons layout
+                    s_link_col, s_report_col = st.columns([8, 2], vertical_alignment="center")
+                    with s_link_col:
+                        if pd.notna(file_link) and file_link.startswith("http"):
+                            urls = [u.strip() for u in file_link.split(",")]
+                            for i, url in enumerate(urls):
+                                st.markdown(f"🔗 [📥 Open External Link {i+1}]({url})")
+                        else:
+                            st.warning("⚠️ No file link available.")
+                    with s_report_col:
+                        st.link_button("⚠️ Report Link", REPORT_ISSUE_FORM_URL, use_container_width=True, key=f"rep_syl_{index}")
+
+                    # Direct Document Preview Expander
+                    if pd.notna(file_link) and file_link.startswith("http"):
+                        with st.expander("👁️ Preview Syllabus Inside App"):
+                            embed_url = get_embeddable_url(file_link.split(",")[0])
+                            st.markdown(
+                                f'<iframe src="{embed_url}" width="100%" height="550px" style="border: none; border-radius: 8px;"></iframe>',
+                                unsafe_allow_html=True
+                            )
+
+# ==========================================
+# 3. PASSWORD-PROTECTED FACULTY UPLOAD PORTAL
+# ==========================================
+elif app_mode == "🔒 Faculty Upload Portal":
+    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
+    st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only to upload Question Papers and Syllabi.*")
+    
+    password_input = st.text_input("Enter Faculty Password", type="password")
+    
+    if password_input == "":
+        st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
+    elif password_input == FACULTY_PASSWORD:
+        st.success("✅ Access Granted! You are authenticated as department faculty.")
+        st.markdown("Use the secure submission link below to upload verified question papers or syllabi:")
+        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
+    else:
+        st.error("❌ Incorrect password. Please contact the college administrator if you need assistance.")
+
+# ==========================================
+# 4. FREQUENTLY ASKED QUESTIONS (FAQS)
+# ==========================================
+elif app_mode == "❓ FAQs":
+    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
+    st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
+    
+    with st.expander("1. How can I search for a specific syllabus or question paper?"):
+        st.write("Use the sidebar to switch between the **Search & Browse Question Bank** and **Syllabi Archive** tabs. Syllabi can be searched cleanly by Department and Curriculum System (CBCS or CCF).")
+    
+    with st.expander("2. Do syllabi require semester or year inputs?"):
+        st.write("No. Syllabi are structured by department and curriculum system rather than individual examination years or semesters.")
+    
+    with st.expander("3. Can I view documents without opening an external tab?"):
+        st.write("Yes! Click the **👁️ Preview Document Inside App** expander under any paper or syllabus to view the PDF directly inside the Streamlit interface.")
+    
+    with st.expander("4. Why is the upload portal password-protected?"):
+        st.write("To protect the institutional repository from spam and ensure only verified academic documents are published.")
+
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
+    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
