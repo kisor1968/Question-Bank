@@ -103,12 +103,23 @@ else:
 if app_mode == "🔍 Search & Browse Question Bank":
     st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
     
-    # Display Counter Metrics Bar
-    m1, m2, m3 = st.columns(3)
-    m1.metric("📁 Question Papers Archived", total_qp)
-    m2.metric("📚 Syllabi Available", total_syl)
-    m3.metric("🏛️ Active Departments", total_depts)
-    st.markdown("---")
+    # Perfectly Aligned Custom Metric Cards
+    st.markdown(f"""
+    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
+            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📁 Question Papers Archived</div>
+            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_qp}</div>
+        </div>
+        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
+            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📚 Syllabi Available</div>
+            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_syl}</div>
+        </div>
+        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
+            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">🏛️ Active Departments</div>
+            <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_depts}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     if df.empty:
         st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
