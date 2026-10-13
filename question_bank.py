@@ -3,7 +3,7 @@ import pandas as pd
 
 # --- PAGE CONFIGURATION & STYLING ---
 st.set_page_config(
-    page_title="Prabhu Jagatbandhu College - Question Bank & Syllabus",
+    page_title="Prabhu Jagatbandhu College - Academic Repository",
     page_icon="🎓",
     layout="wide"
 )
@@ -77,27 +77,48 @@ st.sidebar.markdown("""
 """)
 
 # ==========================================
+# LOAD DATA & COMPUTE METRICS GLOBALLY
+# ==========================================
+df = load_sheet_data()
+if not df.empty:
+    df.columns = df.columns.str.strip()
+    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+    doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
+    
+    total_docs = len(df)
+    if doc_type_col and doc_type_col in df.columns:
+        total_syl = df[df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)].shape[0]
+        total_qp = total_docs - total_syl
+    else:
+        total_syl = 0
+        total_qp = total_docs
+        
+    total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
+else:
+    total_qp, total_syl, total_depts = 0, 0, 0
+
+# ==========================================
 # 1. SEARCH & BROWSE QUESTION BANK
 # ==========================================
 if app_mode == "🔍 Search & Browse Question Bank":
     st.markdown("<h3 style='color: #1E3A8A;'>Search & Filter Question Bank</h3>", unsafe_allow_html=True)
     
-    df = load_sheet_data()
+    # Display Counter Metrics Bar
+    m1, m2, m3 = st.columns(3)
+    m1.metric("📁 Question Papers Archived", total_qp)
+    m2.metric("📚 Syllabi Available", total_syl)
+    m3.metric("🏛️ Active Departments", total_depts)
+    st.markdown("---")
     
     if df.empty:
         st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
     else:
-        # Clean column names
-        df.columns = df.columns.str.strip()
-        
         # Robust dynamic column finders
-        dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
         sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
         year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
         ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
         ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
         course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
-        doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
         
         # Filter controls layout - Row 1
         f_col1, f_col2, f_col3 = st.columns(3)
@@ -132,7 +153,7 @@ if app_mode == "🔍 Search & Browse Question Bank":
         with f_col7:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
-        # Apply filters safely (Exclude syllabi from question bank search if doc_type exists)
+        # Apply filters safely (Exclude syllabi)
         filtered_df = df.copy()
         if doc_type_col and doc_type_col in filtered_df.columns:
             filtered_df = filtered_df[~filtered_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
@@ -193,23 +214,17 @@ if app_mode == "🔍 Search & Browse Question Bank":
                         st.warning("⚠️ No file link available for this submission.")
 
 # ==========================================
-# 2. SYLLABI ARCHIVE (CBCS & CCF)
+# 2. SYLLABI ARCHIVE (CBCS & CCF - Department Only)
 # ==========================================
 elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
     st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
-    st.markdown("Access official curriculum and syllabi structured by department, level, and system (CBCS / CCF).")
-    
-    df = load_sheet_data()
+    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system (CBCS / CCF), and level.")
     
     if df.empty:
         st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
     else:
-        df.columns = df.columns.str.strip()
-        
-        dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
         ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
         ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
-        doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
         
         # Filter controls for Syllabi
         s_col1, s_col2, s_col3 = st.columns(3)
@@ -294,13 +309,13 @@ elif app_mode == "❓ FAQs":
     st.markdown("Got questions about how to use or contribute to the repository? Find answers below:")
     
     with st.expander("1. How can I search for a specific syllabus or question paper?"):
-        st.write("Use the sidebar to switch between the **Search & Browse Question Bank** and **Syllabi Archive** tabs. From there, use the dropdown filters to select your Department, Curriculum System (CBCS or CCF), or Level.")
+        st.write("Use the sidebar to switch between the **Search & Browse Question Bank** and **Syllabi Archive** tabs. Syllabi can be searched cleanly by Department and Curriculum System (CBCS or CCF).")
     
-    with st.expander("2. Can both CBCS and CCF syllabi be uploaded through the same form?"):
-        st.write("Yes! The Google Form automatically captures whether a document belongs to the CBCS or CCF system based on the faculty member's path selections.")
+    with st.expander("2. Do syllabi require semester or year inputs?"):
+        st.write("No. Syllabi are structured by department and curriculum system rather than individual examination years or semesters.")
     
     with st.expander("3. Why is the upload portal password-protected?"):
-        st.write("To protect the institutional repository from spam, unauthorized edits, and ensure that only verified academic documents are published.")
+        st.write("To protect the institutional repository from spam and ensure only verified academic documents are published.")
 
 st.markdown("---")
 st.markdown(
