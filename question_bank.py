@@ -77,7 +77,7 @@ app_mode = st.sidebar.radio("Select View:", [
 st.sidebar.markdown("---")
 st.sidebar.subheader("📖 Quick Guide")
 st.sidebar.markdown("""
-1. **Search**: Filter question papers or syllabi by department and semester.
+1. **Search**: Filter question papers or syllabi by department, semester, year, and course structure.
 2. **Preview**: Expand any document card to view the PDF directly inside the app.
 3. **Faculty Upload**: Secure login required to upload verified documents.
 """)
@@ -96,26 +96,63 @@ if app_mode == "🔍 Search & Browse Question Bank":
     if df.empty:
         st.warning("⚠️ No data found in the Google Sheet. Please check your CSV publishing link.")
     else:
-        # Filter controls
+        # Dynamic column matchers for robust filtering
+        dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+        sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
+        year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
+        doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
+
+        # Filter controls layout - Row 1
         f_col1, f_col2, f_col3 = st.columns(3)
-        
         with f_col1:
-            depts = ["All"] + sorted(df["Department"].dropna().unique().tolist()) if "Department" in df.columns else ["All"]
-            selected_dept = st.selectbox("Department", depts)
+            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
+            selected_dept = st.selectbox("Department", dept_options)
             
         with f_col2:
-            sems = ["All"] + sorted(df["Semester"].dropna().unique().tolist()) if "Semester" in df.columns else ["All"]
-            selected_sem = st.selectbox("Semester", sems)
+            sem_options = ["All"] + sorted(df[sem_col].dropna().unique().tolist()) if sem_col and sem_col in df.columns else ["All"]
+            selected_sem = st.selectbox("Semester", sem_options)
             
         with f_col3:
-            search_text = st.text_input("Keyword Search", placeholder="Paper code or title...")
+            year_options = ["All"] + sorted(df[year_col].dropna().unique().astype(str).tolist()) if year_col and year_col in df.columns else ["All"]
+            selected_year = st.selectbox("Year of Examination", year_options)
+
+        # Filter controls layout - Row 2
+        f_col4, f_col5, f_col6, f_col7 = st.columns(4)
+        with f_col4:
+            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
+            selected_ug_pg = st.selectbox("UG / PG", ug_pg_options)
+
+        with f_col5:
+            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
+            selected_ccf_cbcs = st.selectbox("CCF / CBCS", ccf_cbcs_options)
+
+        with f_col6:
+            struct_options = ["All"] + sorted(df[course_struct_col].dropna().unique().tolist()) if course_struct_col and course_struct_col in df.columns else ["All"]
+            selected_struct = st.selectbox("Course Structure", struct_options)
+
+        with f_col7:
+            search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
-        # Apply filters
+        # Apply filters (exclude syllabi from question bank view)
         filtered_df = df.copy()
-        if selected_dept != "All" and "Department" in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df["Department"] == selected_dept]
-        if selected_sem != "All" and "Semester" in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df["Semester"] == selected_sem]
+        if doc_type_col and doc_type_col in filtered_df.columns:
+            filtered_df = filtered_df[~filtered_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
+            
+        if selected_dept != "All" and dept_col and dept_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
+        if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
+        if selected_year != "All" and year_col and year_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[year_col].astype(str).str.contains(selected_year, na=False)]
+        if selected_ug_pg != "All" and ug_pg_col and ug_pg_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
+        if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[ccf_cbcs_col] == selected_ccf_cbcs]
+        if selected_struct != "All" and course_struct_col and course_struct_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[course_struct_col] == selected_struct]
         if search_text:
             mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
             filtered_df = filtered_df[mask]
@@ -142,15 +179,31 @@ if app_mode == "🔍 Search & Browse Question Bank":
         else:
             for index, row in filtered_df.iterrows():
                 with st.container(border=True):
-                    dept = row.get("Department", "N/A")
-                    sem = row.get("Semester", "N/A")
-                    paper_code = row.get("Paper Code", "Question Paper")
-                    year = row.get("Year of Examination", "N/A")
-                    struct = row.get("Course Structure", "")
-                    file_link = row.get("Question Paper file", "")
+                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
+                    sem_val = row[sem_col] if sem_col and sem_col in row and pd.notna(row[sem_col]) else "N/A"
+                    year_val = row[year_col] if year_col and year_col in row and pd.notna(row[year_col]) else "N/A"
                     
-                    st.markdown(f"**Paper Code / Title:** `{paper_code}`")
-                    st.caption(f"📂 **Dept:** {dept} | 📚 **Semester:** {sem} | 📅 **Year:** {year} | 📖 **Structure:** {struct}")
+                    # Try to find paper code column dynamically or fallback
+                    paper_code_col = next((c for c in df.columns if 'code' in c.lower()), None)
+                    paper_code = row[paper_code_col] if paper_code_col and pd.notna(row[paper_code_col]) else (row.iloc[2] if len(row) > 2 else "Question Paper")
+                    
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                    
+                    st.markdown(f"**Paper Details:** `{paper_code}`")
+                    
+                    caption_parts = [f"📂 **Dept:** {dept_val}", f"📚 **Semester:** {sem_val}", f"📅 **Year:** `{year_val}`"]
+                    if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]):
+                        caption_parts.append(f"🎓 **Level:** {row[ug_pg_col]}")
+                    if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]):
+                        caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
+                    if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
+                        caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
+                    st.caption(" | ".join(caption_parts))
                     
                     if pd.notna(file_link) and str(file_link).startswith("http"):
                         st.markdown(f"🔗 [📥 Open External Document Link]({file_link})")
@@ -169,32 +222,62 @@ if app_mode == "🔍 Search & Browse Question Bank":
 # ==========================================
 elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
     st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
-    st.markdown("Access official curriculum and syllabi structured strictly by department.")
+    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system, and level.")
     
     if df.empty:
         st.warning("⚠️ No data available.")
     else:
-        depts = ["All"] + sorted(df["Department"].dropna().unique().tolist()) if "Department" in df.columns else ["All"]
-        selected_syl_dept = st.selectbox("Department", depts, key="syl_dept_select")
-        
+        dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
+
+        s_col1, s_col2, s_col3 = st.columns(3)
+        with s_col1:
+            dept_opts = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
+            selected_syl_dept = st.selectbox("Department", dept_opts, key="syl_dept")
+        with s_col2:
+            sys_opts = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
+            selected_syl_sys = st.selectbox("Curriculum System", sys_opts, key="syl_sys")
+        with s_col3:
+            lvl_opts = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
+            selected_syl_lvl = st.selectbox("Level / Program", lvl_opts, key="syl_lvl")
+            
         filtered_syl = df.copy()
-        if selected_syl_dept != "All" and "Department" in filtered_syl.columns:
-            filtered_syl = filtered_syl[filtered_syl["Department"] == selected_syl_dept]
+        if doc_type_col and doc_type_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
+        if selected_syl_dept != "All" and dept_col and dept_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[dept_col] == selected_syl_dept]
+        if selected_syl_sys != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[ccf_cbcs_col] == selected_syl_sys]
+        if selected_syl_lvl != "All" and ug_pg_col and ug_pg_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[ug_pg_col] == selected_syl_lvl]
             
         st.markdown("---")
-        st.subheader(f"Syllabi Records Found: {len(filtered_syl)}")
+        st.subheader(f"Syllabi Found: {len(filtered_syl)}")
         
         if filtered_syl.empty:
-            st.info("No syllabi records found.")
+            st.info("No syllabi found matching your criteria.")
         else:
             for index, row in filtered_syl.iterrows():
                 with st.container(border=True):
-                    dept = row.get("Department", "N/A")
-                    file_link = row.get("Question Paper file", "")
+                    dept = row.get(dept_col, "N/A") if dept_col else "N/A"
+                    system = row.get(ccf_cbcs_col, "N/A") if ccf_cbcs_col else "N/A"
+                    level = row.get(ug_pg_col, "N/A") if ug_pg_col else "N/A"
+                    doc_title = row.iloc[2] if len(row) > 2 else "Department Syllabus"
                     
-                    st.markdown(f"**Department Syllabus:** {dept}")
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                            
+                    st.markdown(f"**Document Title:** {doc_title}")
+                    st.caption(f"📂 **Dept:** {dept} | ⚙️ **System:** {system} | 🎓 **Level:** {level}")
+                    
                     if pd.notna(file_link) and str(file_link).startswith("http"):
-                        st.markdown(f"🔗 [📥 Open Syllabus Link]({file_link})")
+                        st.markdown(f"🔗 [📥 Open External Syllabus Link]({file_link})")
                         with st.expander("👁️ Preview Syllabus Inside App"):
                             embed_url = get_embeddable_url(str(file_link))
                             st.markdown(
@@ -224,10 +307,10 @@ elif app_mode == "🔒 Faculty Upload Portal":
 # 4. FREQUENTLY ASKED QUESTIONS (FAQS)
 # ==========================================
 elif app_mode == "❓ FAQs":
-    st.markdown("<h3 style='color: #1E3A8A;?>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
     
     with st.expander("1. How can I search for a specific question paper?"):
-        st.write("Use the **Search & Browse Question Bank** tab from the sidebar to filter by Department, Semester, or keywords.")
+        st.write("Use the multi-row filters in the **Search & Browse Question Bank** tab to filter by Department, Semester, Year, UG/PG, CCF/CBCS, and Course Structure.")
     
     with st.expander("2. Can I view PDFs directly without downloading?"):
         st.write("Yes, click the **👁️ Preview Document Inside App** expander under any paper card.")
