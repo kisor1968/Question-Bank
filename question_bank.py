@@ -30,7 +30,7 @@ st.markdown("""
 
 # --- GOOGLE SHEET CONFIGURATION ---
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
-GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform""
+GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform"
 
 # --- FACULTY PASSWORD CONFIGURATION ---
 FACULTY_PASSWORD = "PJC_Faculty@2026"  # You can change this password anytime here
