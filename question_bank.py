@@ -243,4 +243,69 @@ if app_mode == "🔍 Search & Browse Question Bank":
                         caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
                     if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
                         caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
-                    st.caption("
+                    st.caption(" | ".join(caption_parts))
+                    
+                    if pd.notna(file_link) and file_link.startswith("http"):
+                        urls = [u.strip() for u in file_link.split(",")]
+                        for i, url in enumerate(urls):
+                            st.markdown(f"🔗 [📥 Open External Link {i+1}]({url})")
+                    else:
+                        st.warning("⚠️ No file link available for this submission.")
+
+                    # Direct Document Preview Expander
+                    if pd.notna(file_link) and file_link.startswith("http"):
+                        with st.expander("👁️ Preview Document Inside App"):
+                            embed_url = get_embeddable_url(file_link.split(",")[0])
+                            st.markdown(
+                                f'<iframe src="{embed_url}" width="100%" height="550px" style="border: none; border-radius: 8px;"></iframe>',
+                                unsafe_allow_html=True
+                            )
+
+# ==========================================
+# 2. SYLLABI ARCHIVE (CBCS & CCF - Department Only)
+# ==========================================
+elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
+    st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
+    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system (CBCS / CCF), and level.")
+    
+    if df.empty:
+        st.warning("⚠️ Google Sheet URL is not configured yet or no submissions have been made.")
+    else:
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        
+        # Filter controls for Syllabi
+        s_col1, s_col2, s_col3 = st.columns(3)
+        with s_col1:
+            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
+            selected_syllabus_dept = st.selectbox("Department", dept_options, key="syl_dept")
+            
+        with s_col2:
+            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
+            selected_syllabus_system = st.selectbox("Curriculum System", ccf_cbcs_options, key="syl_sys")
+
+        with s_col3:
+            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
+            selected_syllabus_level = st.selectbox("Level / Program", ug_pg_options, key="syl_lvl")
+            
+        # Filter dataframe specifically for Syllabi
+        filtered_syl_df = df.copy()
+        if doc_type_col and doc_type_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
+        
+        if selected_syllabus_dept != "All" and dept_col and dept_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[dept_col] == selected_syllabus_dept]
+        if selected_syllabus_system != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[ccf_cbcs_col] == selected_syllabus_system]
+        if selected_syllabus_level != "All" and ug_pg_col and ug_pg_col in filtered_syl_df.columns:
+            filtered_syl_df = filtered_syl_df[filtered_syl_df[ug_pg_col] == selected_syllabus_level]
+            
+        st.markdown("---")
+        
+        # Syllabi header & CSV Export button row
+        s_res1, s_res2 = st.columns([7, 3], vertical_alignment="center")
+        with s_res1:
+            st.subheader(f"Syllabi Found: {len(filtered_syl_df)}")
+        with s_res2:
+            if not filtered_syl_df.empty:
+                syl_csv
