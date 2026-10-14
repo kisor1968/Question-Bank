@@ -73,7 +73,7 @@ app_mode = st.sidebar.radio("Select View:", [
     "📚 Syllabi Archive (CBCS & CCF)", 
     "🔒 Faculty Upload Portal", 
     "❓ FAQs"
-])
+], index=0)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📖 Quick Guide")
@@ -402,7 +402,7 @@ elif app_mode == "🔒 Faculty Upload Portal":
     else:
         st.error("❌ Incorrect password.")
 
-# =================="========================
+# ==========================================
 # 4. FREQUENTLY ASKED QUESTIONS (FAQS)
 # ==========================================
 elif app_mode == "❓ FAQs":
