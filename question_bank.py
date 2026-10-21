@@ -64,7 +64,7 @@ with header_col1:
 
 with header_col2:
     st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Academic Repository</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs) and Departmental Syllabi (CBCS & CCF).</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs).</p>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -73,7 +73,6 @@ st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", [
     "🏠 Home & Overview",
     "🔍 Search & Browse Question Bank", 
-    "📚 Syllabi Archive (CBCS & CCF)", 
     "🔒 Faculty Upload Portal", 
     "❓ FAQs"
 ], index=0)
@@ -82,8 +81,7 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📖 Quick Guide")
 st.sidebar.markdown("""
 1. **Explore Home**: Check live repository metrics and recent additions.
-2. **Search**: Filter question papers or syllabi by department and curriculum.
-3. **Faculty Upload**: Secure login required to upload verified documents.
+2. **Faculty Upload**: Secure login required to upload verified documents.
 """)
 
 # Load and clean data globally
@@ -97,13 +95,6 @@ if not df.empty:
     if dept_col and dept_col in df.columns:
         df = df[df[dept_col].notna() & (df[dept_col].astype(str).str.strip() != "")]
 
-    total_docs = len(df)
-    if doc_type_col and doc_type_col in df.columns:
-        total_syl = df[df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)].shape[0]
-        total_qp = total_docs - total_syl
-    else:
-        total_syl = 0
-        total_qp = total_docs
         
     total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
 else:
@@ -120,7 +111,7 @@ if app_mode == "🏠 Home & Overview":
     <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
         <p style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">
-            Your centralized institutional gateway for Prabhu Jagatbandhu College University Question Papers (PYQs) and Departmental Syllabi (CBCS & CCF).
+            Your centralized institutional gateway for Prabhu Jagatbandhu College University Question Papers (PYQs) (CCF/CBCS.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -133,7 +124,6 @@ if app_mode == "🏠 Home & Overview":
             <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_qp}</div>
         </div>
         <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
-            <div style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 5px;">📚 Syllabi Available</div>
             <div style="color: #1E3A8A; font-size: 30px; font-weight: 700;">{total_syl}</div>
         </div>
         <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
@@ -152,12 +142,6 @@ if app_mode == "🏠 Home & Overview":
             st.markdown("### 🔍 Question Bank")
             st.write("Browse and filter past university question papers by semester, year, and department.")
             st.info("👈 Select **Search & Browse** in the sidebar to begin.")
-                
-    with q_col2:
-        with st.container(border=True):
-            st.markdown("### 📚 Syllabi Archive")
-            st.write("Access official curriculum and syllabi structured by CBCS and CCF frameworks.")
-            st.info("👈 Select **Syllabi Archive** in the sidebar.")
                 
     with q_col3:
         with st.container(border=True):
