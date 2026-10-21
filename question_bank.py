@@ -215,11 +215,6 @@ elif app_mode == "🔍 Search & Browse Question Bank":
         with f_col7:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
-        # Apply filters (exclude syllabi)
-        filtered_df = df.copy()
-        if doc_type_col and doc_type_col in filtered_df.columns:
-            filtered_df = filtered_df[~filtered_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
-            
         if selected_dept != "All" and dept_col and dept_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
         if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
@@ -294,13 +289,6 @@ elif app_mode == "🔍 Search & Browse Question Bank":
                             )
                     else:
                         st.warning("⚠️ No valid file link attached to this record.")
-
-# ==========================================
-# 2. SYLLABI ARCHIVE
-# ==========================================
-elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
-    st.markdown("<h3 style='color: #1E3A8A;'>Department Syllabi Archive (CBCS & CCF)</h3>", unsafe_allow_html=True)
-    st.markdown("Access official curriculum and syllabi structured strictly by department, curriculum system, and level.")
     
     if df.empty:
         st.warning("⚠️ No data available.")
@@ -319,62 +307,7 @@ elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
             lvl_opts = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
             selected_syl_lvl = st.selectbox("Level / Program", lvl_opts, key="syl_lvl")
             
-        filtered_syl = df.copy()
-        if doc_type_col and doc_type_col in filtered_syl.columns:
-            filtered_syl = filtered_syl[filtered_syl[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
-        if selected_syl_dept != "All" and dept_col and dept_col in filtered_syl.columns:
-            filtered_syl = filtered_syl[filtered_syl[dept_col] == selected_syl_dept]
-        if selected_syl_sys != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl.columns:
-            filtered_syl = filtered_syl[filtered_syl[ccf_cbcs_col] == selected_syl_sys]
-        if selected_syl_lvl != "All" and ug_pg_col and ug_pg_col in filtered_syl.columns:
-            filtered_syl = filtered_syl[filtered_syl[ug_pg_col] == selected_syl_lvl]
-            
-        st.markdown("---")
         
-        s_res1, s_res2 = st.columns([7, 3], vertical_alignment="center")
-        with s_res1:
-            st.subheader(f"Syllabi Found: {len(filtered_syl)}")
-        with s_res2:
-            if not filtered_syl.empty:
-                syl_csv_data = filtered_syl.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Export Filtered CSV",
-                    data=syl_csv_data,
-                    file_name="pjc_syllabi_export.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    key="syl_csv_btn"
-                )
-        
-        if filtered_syl.empty:
-            st.info("No syllabi found matching your criteria.")
-        else:
-            for index, row in filtered_syl.iterrows():
-                with st.container(border=True):
-                    dept = row.get(dept_col, "N/A") if dept_col else "N/A"
-                    system = row.get(ccf_cbcs_col, "N/A") if ccf_cbcs_col else "N/A"
-                    level = row.get(ug_pg_col, "N/A") if ug_pg_col else "N/A"
-                    doc_title = row.iloc[2] if len(row) > 2 else "Department Syllabus"
-                    
-                    file_link = ""
-                    for col in df.columns:
-                        val = str(row[col])
-                        if val.startswith("http"):
-                            file_link = val
-                            break
-                            
-                    st.markdown(f"**Document Title:** {doc_title}")
-                    st.caption(f"📂 **Dept:** {dept} | ⚙️ **System:** {system} | 🎓 **Level:** {level}")
-                    
-                    if pd.notna(file_link) and str(file_link).startswith("http"):
-                        st.markdown(f"🔗 [📥 Open External Syllabus Link]({file_link})")
-                        with st.expander("👁️ Preview Syllabus Inside App"):
-                            embed_url = get_embeddable_url(str(file_link))
-                            st.markdown(
-                                f'<iframe src="{embed_url}" width="100%" height="500px" style="border: none; border-radius: 8px;"></iframe>',
-                                unsafe_allow_html=True
-                            )
-
 # ==========================================
 # 3. FACULTY UPLOAD PORTAL
 # ==========================================
@@ -388,7 +321,7 @@ elif app_mode == "🔒 Faculty Upload Portal":
         st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
     elif password_input == FACULTY_PASSWORD:
         st.success("✅ Access Granted! You are authenticated as department faculty.")
-        st.markdown("Use the secure submission link below to upload verified question papers or syllabi:")
+        
         st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
     else:
         st.error("❌ Incorrect password.")
