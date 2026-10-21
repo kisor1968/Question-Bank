@@ -67,7 +67,7 @@ with header_col2:
 
 st.markdown("---")
 
-# --- SIDEBAR NAVIGATION ---
+# --- SIDEBAR NAVIGATION (Syllabi Removed) ---
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", [
     "🏠 Home & Overview",
