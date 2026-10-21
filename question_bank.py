@@ -24,7 +24,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- GOOGLE SHEET CONFIGURATION ---
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmVbhktPZiOsXXra7mqjElbUVxybeBGAMSqloH3kTrjXe0nziwqfYMf-gU7AjNDI_inkHQHLgZ61ki/pub?output=csv"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform"
 FACULTY_PASSWORD = "PJC_Faculty@2026"
 
@@ -34,45 +34,8 @@ def load_sheet_data():
         return pd.DataFrame()
     try:
         df = pd.read_csv(SHEET_CSV_URL)
-        df.columns = df.columns.str.strip()
-        
-        # --- INTELLIGENT COLUMN CONSOLIDATION FOR BRANCHED FORMS ---
-        # 1. Consolidate Department columns
-        dept_cols = [c for c in df.columns if 'department' in c.lower()]
-        if len(dept_cols) > 1:
-            df['Unified_Dept'] = df[dept_cols].bfill(axis=1).iloc[:, 0]
-        elif len(dept_cols) == 1:
-            df['Unified_Dept'] = df[dept_cols[0]]
-        else:
-            df['Unified_Dept'] = "General"
-
-        # 2. Consolidate File Link / Upload columns
-        link_cols = [c for c in df.columns if any(k in c.lower() for k in ['upload', 'file', 'link', 'url'])]
-        if len(link_cols) > 1:
-            df['Unified_Link'] = df[link_cols].bfill(axis=1).iloc[:, 0]
-        elif len(link_cols) == 1:
-            df['Unified_Link'] = df[link_cols[0]]
-        else:
-            df['Unified_Link'] = ""
-
-        # 3. Consolidate Document Type columns
-        type_cols = [c for c in df.columns if any(k in c.lower() for k in ['question paper or syllabus', 'document type', 'type'])]
-        if len(type_cols) > 1:
-            df['Unified_DocType'] = df[type_cols].bfill(axis=1).iloc[:, 0]
-        elif len(type_cols) == 1:
-            df['Unified_DocType'] = df[type_cols[0]]
-        else:
-            df['Unified_DocType'] = "Question Paper"
-
-        # 4. Consolidate Course Structure columns
-        struct_cols = [c for c in df.columns if 'structure' in c.lower()]
-        if len(struct_cols) > 1:
-            df['Unified_Structure'] = df[struct_cols].bfill(axis=1).iloc[:, 0]
-        elif len(struct_cols) == 1:
-            df['Unified_Structure'] = df[struct_cols[0]]
-        else:
-            df['Unified_Structure'] = "N/A"
-
+        # Drop completely empty rows or rows where all entries are NaN
+        df = df.dropna(how='all')
         return df
     except Exception:
         return pd.DataFrame()
@@ -123,21 +86,36 @@ st.sidebar.markdown("""
 3. **Faculty Upload**: Secure login required to upload verified documents.
 """)
 
-# Load and process data globally
+# Load and clean data globally
 df = load_sheet_data()
 if not df.empty:
+    df.columns = df.columns.str.strip()
+    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+    doc_type_col = next((col for col in df.columns if any(k in col.lower() for k in ['doc', 'type', 'document'])), None)
+    
+    # Filter out rows missing essential department info to prevent 'nan' cards
+    if dept_col and dept_col in df.columns:
+        df = df[df[dept_col].notna() & (df[dept_col].astype(str).str.strip() != "")]
+
     total_docs = len(df)
-    total_syl = df[df['Unified_DocType'].astype(str).str.contains("syllabus", case=False, na=False)].shape[0]
-    total_qp = total_docs - total_syl
-    total_depts = df['Unified_Dept'].nunique() if 'Unified_Dept' in df.columns else 0
+    if doc_type_col and doc_type_col in df.columns:
+        total_syl = df[df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)].shape[0]
+        total_qp = total_docs - total_syl
+    else:
+        total_syl = 0
+        total_qp = total_docs
+        
+    total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
 else:
     total_qp, total_syl, total_depts = 0, 0, 0
+    dept_col, doc_type_col = None, None
 
 # ==========================================
 # 0. HOME & DYNAMIC FRONTAL OVERVIEW
 # ==========================================
 if app_mode == "🏠 Home & Overview":
     
+    # 1. Stunning Hero Banner
     st.markdown("""
     <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
@@ -147,6 +125,7 @@ if app_mode == "🏠 Home & Overview":
     </div>
     """, unsafe_allow_html=True)
 
+    # 2. Metric Cards
     st.markdown(f"""
     <div style="display: flex; gap: 15px; margin-bottom: 30px;">
         <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
@@ -164,6 +143,7 @@ if app_mode == "🏠 Home & Overview":
     </div>
     """, unsafe_allow_html=True)
 
+    # 3. Quick Action Hub
     st.subheader("⚡ Quick Portal Navigation")
     q_col1, q_col2, q_col3 = st.columns(3)
     
@@ -185,13 +165,14 @@ if app_mode == "🏠 Home & Overview":
             st.write("Secure, password-protected upload gateway for authorized department faculty.")
             st.info("👈 Select **Faculty Upload Portal** in the sidebar.")
 
-    if not df.empty:
+    # 4. Department Distribution Chart & Recent Additions
+    if not df.empty and dept_col and dept_col in df.columns:
         st.markdown("---")
         chart_col1, chart_col2 = st.columns([1, 1], vertical_alignment="top")
         
         with chart_col1:
             st.subheader("📊 Submissions by Department")
-            dept_counts = df['Unified_Dept'].value_counts()
+            dept_counts = df[dept_col].value_counts()
             st.bar_chart(dept_counts, color="#3B82F6")
             
         with chart_col2:
@@ -199,8 +180,8 @@ if app_mode == "🏠 Home & Overview":
             recent_df = df.tail(3).iloc[::-1]
             for _, row in recent_df.iterrows():
                 with st.container(border=True):
-                    doc_title = str(row.get('Paper Code', row.iloc[2] if len(row) > 2 else "Academic Document"))
-                    dept_name = str(row.get('Unified_Dept', 'General'))
+                    doc_title = row.iloc[2] if len(row) > 2 else "Academic Document"
+                    dept_name = row[dept_col] if pd.notna(row[dept_col]) else "General"
                     st.markdown(f"✨ **{doc_title}**")
                     st.caption(f"📂 Department of {dept_name}")
 
@@ -215,55 +196,65 @@ elif app_mode == "🔍 Search & Browse Question Bank":
     else:
         sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
         year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
-        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'undergraduate'])), None)
-        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system'])), None)
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
 
-        # Filter controls layout
+        # Filter controls layout - Row 1
         f_col1, f_col2, f_col3 = st.columns(3)
         with f_col1:
-            dept_options = ["All"] + sorted(df['Unified_Dept'].dropna().unique().tolist())
+            dept_options = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
             selected_dept = st.selectbox("Department", dept_options)
+            
         with f_col2:
-            sem_options = ["All"] + sorted(df[sem_col].dropna().unique().tolist()) if sem_col else ["All"]
+            sem_options = ["All"] + sorted(df[sem_col].dropna().unique().tolist()) if sem_col and sem_col in df.columns else ["All"]
             selected_sem = st.selectbox("Semester", sem_options)
+            
         with f_col3:
-            year_options = ["All"] + sorted(df[year_col].dropna().unique().astype(str).tolist()) if year_col else ["All"]
+            year_options = ["All"] + sorted(df[year_col].dropna().unique().astype(str).tolist()) if year_col and year_col in df.columns else ["All"]
             selected_year = st.selectbox("Year of Examination", year_options)
 
+        # Filter controls layout - Row 2
         f_col4, f_col5, f_col6, f_col7 = st.columns(4)
         with f_col4:
-            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col else ["All"]
+            ug_pg_options = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
             selected_ug_pg = st.selectbox("UG / PG", ug_pg_options)
+
         with f_col5:
-            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col else ["All"]
+            ccf_cbcs_options = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
             selected_ccf_cbcs = st.selectbox("CCF / CBCS", ccf_cbcs_options)
+
         with f_col6:
-            struct_options = ["All"] + sorted(df['Unified_Structure'].dropna().unique().tolist())
+            struct_options = ["All"] + sorted(df[course_struct_col].dropna().unique().tolist()) if course_struct_col and course_struct_col in df.columns else ["All"]
             selected_struct = st.selectbox("Course Structure", struct_options)
+
         with f_col7:
             search_text = st.text_input("Keyword Search", placeholder="Paper code or text...")
             
         # Apply filters (exclude syllabi)
-        filtered_df = df[~df['Unified_DocType'].astype(str).str.contains("syllabus", case=False, na=False)].copy()
+        filtered_df = df.copy()
+        if doc_type_col and doc_type_col in filtered_df.columns:
+            filtered_df = filtered_df[~filtered_df[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
             
-        if selected_dept != "All":
-            filtered_df = filtered_df[filtered_df['Unified_Dept'] == selected_dept]
-        if selected_sem != "All" and sem_col:
+        if selected_dept != "All" and dept_col and dept_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[dept_col] == selected_dept]
+        if selected_sem != "All" and sem_col and sem_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[sem_col] == selected_sem]
-        if selected_year != "All" and year_col:
+        if selected_year != "All" and year_col and year_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[year_col].astype(str).str.contains(selected_year, na=False)]
-        if selected_ug_pg != "All" and ug_pg_col:
+        if selected_ug_pg != "All" and ug_pg_col and ug_pg_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ug_pg_col] == selected_ug_pg]
-        if selected_ccf_cbcs != "All" and ccf_cbcs_col:
+        if selected_ccf_cbcs != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_df.columns:
             filtered_df = filtered_df[filtered_df[ccf_cbcs_col] == selected_ccf_cbcs]
-        if selected_struct != "All":
-            filtered_df = filtered_df[filtered_df['Unified_Structure'] == selected_struct]
+        if selected_struct != "All" and course_struct_col and course_struct_col in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df[course_struct_col] == selected_struct]
         if search_text:
             mask = filtered_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)
             filtered_df = filtered_df[mask]
             
         st.markdown("---")
         
+        # Results header & CSV Export button
         res_col1, res_col2 = st.columns([7, 3], vertical_alignment="center")
         with res_col1:
             st.subheader(f"Question Papers Found: {len(filtered_df)}")
@@ -283,27 +274,34 @@ elif app_mode == "🔍 Search & Browse Question Bank":
         else:
             for index, row in filtered_df.iterrows():
                 with st.container(border=True):
-                    dept_val = row.get('Unified_Dept', 'N/A')
-                    sem_val = row.get(sem_col, 'N/A') if sem_col else 'N/A'
-                    year_val = str(row.get(year_col, 'N/A')) if year_col else 'N/A'
+                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
+                    sem_val = row[sem_col] if sem_col and sem_col in row and pd.notna(row[sem_col]) else "N/A"
+                    year_val = str(row[year_col]) if year_col and year_col in row and pd.notna(row[year_col]) else "N/A"
                     
                     paper_code_col = next((c for c in df.columns if 'code' in c.lower()), None)
-                    paper_title = row.get(paper_code_col, row.iloc[2] if len(row) > 2 else "Question Paper")
-                    file_link = row.get('Unified_Link', '')
+                    paper_code = row[paper_code_col] if paper_code_col and pd.notna(row[paper_code_col]) else (row.iloc[2] if len(row) > 2 else "Question Paper")
                     
-                    st.markdown(f"**Paper Details:** `{paper_title}`")
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                    
+                    st.markdown(f"**Paper Details:** `{paper_code}`")
                     
                     caption_parts = [f"📂 **Dept:** {dept_val}", f"📚 **Semester:** {sem_val}", f"📅 **Year:** `{year_val}`"]
-                    if ug_pg_col and pd.notna(row.get(ug_pg_col)):
+                    if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]):
                         caption_parts.append(f"🎓 **Level:** {row[ug_pg_col]}")
-                    if ccf_cbcs_col and pd.notna(row.get(ccf_cbcs_col)):
+                    if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]):
                         caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
-                    if pd.notna(row.get('Unified_Structure')):
-                        caption_parts.append(f"📖 **Structure:** {row['Unified_Structure']}")
+                    if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
+                        caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
                     st.caption(" | ".join(caption_parts))
                     
                     if pd.notna(file_link) and str(file_link).startswith("http"):
                         st.markdown(f"🔗 [📥 Open External Document Link]({file_link})")
+                        
                         with st.expander("👁️ Preview Document Inside App"):
                             embed_url = get_embeddable_url(str(file_link))
                             st.markdown(
@@ -323,26 +321,28 @@ elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
     if df.empty:
         st.warning("⚠️ No data available.")
     else:
-        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system'])), None)
-        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'undergraduate'])), None)
+        ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+        ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
 
         s_col1, s_col2, s_col3 = st.columns(3)
         with s_col1:
-            dept_opts = ["All"] + sorted(df['Unified_Dept'].dropna().unique().tolist())
+            dept_opts = ["All"] + sorted(df[dept_col].dropna().unique().tolist()) if dept_col and dept_col in df.columns else ["All"]
             selected_syl_dept = st.selectbox("Department", dept_opts, key="syl_dept")
         with s_col2:
-            sys_opts = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col else ["All"]
+            sys_opts = ["All"] + sorted(df[ccf_cbcs_col].dropna().unique().tolist()) if ccf_cbcs_col and ccf_cbcs_col in df.columns else ["All"]
             selected_syl_sys = st.selectbox("Curriculum System", sys_opts, key="syl_sys")
         with s_col3:
-            lvl_opts = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col else ["All"]
+            lvl_opts = ["All"] + sorted(df[ug_pg_col].dropna().unique().tolist()) if ug_pg_col and ug_pg_col in df.columns else ["All"]
             selected_syl_lvl = st.selectbox("Level / Program", lvl_opts, key="syl_lvl")
             
-        filtered_syl = df[df['Unified_DocType'].astype(str).str.contains("syllabus", case=False, na=False)].copy()
-        if selected_syl_dept != "All":
-            filtered_syl = filtered_syl[filtered_syl['Unified_Dept'] == selected_syl_dept]
-        if selected_syl_sys != "All" and ccf_cbcs_col:
+        filtered_syl = df.copy()
+        if doc_type_col and doc_type_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[doc_type_col].astype(str).str.contains("syllabus", case=False, na=False)]
+        if selected_syl_dept != "All" and dept_col and dept_col in filtered_syl.columns:
+            filtered_syl = filtered_syl[filtered_syl[dept_col] == selected_syl_dept]
+        if selected_syl_sys != "All" and ccf_cbcs_col and ccf_cbcs_col in filtered_syl.columns:
             filtered_syl = filtered_syl[filtered_syl[ccf_cbcs_col] == selected_syl_sys]
-        if selected_syl_lvl != "All" and ug_pg_col:
+        if selected_syl_lvl != "All" and ug_pg_col and ug_pg_col in filtered_syl.columns:
             filtered_syl = filtered_syl[filtered_syl[ug_pg_col] == selected_syl_lvl]
             
         st.markdown("---")
@@ -367,12 +367,18 @@ elif app_mode == "📚 Syllabi Archive (CBCS & CCF)":
         else:
             for index, row in filtered_syl.iterrows():
                 with st.container(border=True):
-                    dept = row.get('Unified_Dept', 'N/A')
-                    system = row.get(ccf_cbcs_col, 'N/A') if ccf_cbcs_col else 'N/A'
-                    level = row.get(ug_pg_col, 'N/A') if ug_pg_col else 'N/A'
+                    dept = row.get(dept_col, "N/A") if dept_col else "N/A"
+                    system = row.get(ccf_cbcs_col, "N/A") if ccf_cbcs_col else "N/A"
+                    level = row.get(ug_pg_col, "N/A") if ug_pg_col else "N/A"
                     doc_title = row.iloc[2] if len(row) > 2 else "Department Syllabus"
-                    file_link = row.get('Unified_Link', '')
                     
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                            
                     st.markdown(f"**Document Title:** {doc_title}")
                     st.caption(f"📂 **Dept:** {dept} | ⚙️ **System:** {system} | 🎓 **Level:** {level}")
                     
