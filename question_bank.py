@@ -289,4 +289,41 @@ elif app_mode == "🔍 Search & Browse Question Bank":
 
 # ==========================================
 # 2. FACULTY UPLOAD PORTAL
-#
+# ==========================================
+elif app_mode == "🔒 Faculty Upload Portal":
+    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
+    st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only.*")
+    
+    password_input = st.text_input("Enter Faculty Password", type="password")
+    
+    if password_input == "":
+        st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
+    elif password_input == FACULTY_PASSWORD:
+        st.success("✅ Access Granted! You are authenticated as department faculty.")
+        st.markdown("Use the secure submission link below to upload verified question papers:")
+        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
+    else:
+        st.error("❌ Incorrect password.")
+
+# ==========================================
+# 3. FREQUENTLY ASKED QUESTIONS (FAQS)
+# ==========================================
+elif app_mode == "❓ FAQs":
+    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
+    
+    with st.expander("1. How can I search for a specific question paper?"):
+        st.write("Use the multi-row filters in the **Search & Browse Question Bank** tab to filter by Department, Semester, Year, UG/PG, CCF/CBCS, and Course Structure.")
+    
+    with st.expander("2. Can I view PDFs directly without downloading?"):
+        st.write("Yes, click the **👁️ Preview Document Inside App** expander under any paper card.")
+    
+    with st.expander("3. How do faculty upload documents?"):
+        st.write("Go to the **Faculty Upload Portal** and enter the secure department password.")
+
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
+    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
