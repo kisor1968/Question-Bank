@@ -99,4 +99,9 @@ df = load_sheet_data()
 if not df.empty:
     dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
     
-    if dept_col and dept
+    if dept_col and dept_col in df.columns:
+        df = df[df[dept_col].notna() & (df[dept_col].astype(str).str.strip() != "")]
+
+    total_qp = len(df)
+    total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
+else:
