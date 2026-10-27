@@ -35,16 +35,6 @@ def load_sheet_data():
     try:
         df = pd.read_csv(SHEET_CSV_URL)
         df = df.dropna(how='all')
-        
-        # Clean column names
-        df.columns = df.columns.str.strip()
-        
-        # Format year column to integer string to remove .0 decimal (e.g., 2024.0 -> 2024)
-        year_col_name = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
-        if year_col_name and year_col_name in df.columns:
-            df[year_col_name] = pd.to_numeric(df[year_col_name], errors='coerce').fillna(0).astype(int).astype(str)
-            df.loc[df[year_col_name] == '0', year_col_name] = ""
-            
         return df
     except Exception:
         return pd.DataFrame()
@@ -97,6 +87,7 @@ st.sidebar.markdown("""
 # Load and clean data globally
 df = load_sheet_data()
 if not df.empty:
+    df.columns = df.columns.str.strip()
     dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
     
     if dept_col and dept_col in df.columns:
@@ -249,4 +240,90 @@ elif app_mode == "🔍 Search & Browse Question Bank":
                 st.download_button(
                     label="📥 Export Filtered CSV",
                     data=csv_data,
-                    file_name="p
+                    file_name="pjc_question_papers_export.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        
+        if filtered_df.empty:
+            st.info("No question papers found matching your criteria.")
+        else:
+            for index, row in filtered_df.iterrows():
+                with st.container(border=True):
+                    dept_val = row[dept_col] if dept_col and dept_col in row and pd.notna(row[dept_col]) else "N/A"
+                    sem_val = row[sem_col] if sem_col and sem_col in row and pd.notna(row[sem_col]) else "N/A"
+                    year_val = str(row[year_col]) if year_col and year_col in row and pd.notna(row[year_col]) else "N/A"
+                    
+                    paper_code_col = next((c for c in df.columns if 'code' in c.lower()), None)
+                    paper_code = row[paper_code_col] if paper_code_col and pd.notna(row[paper_code_col]) else (row.iloc[2] if len(row) > 2 else "Question Paper")
+                    
+                    file_link = ""
+                    for col in df.columns:
+                        val = str(row[col])
+                        if val.startswith("http"):
+                            file_link = val
+                            break
+                    
+                    st.markdown(f"**Paper Details:** `{paper_code}`")
+                    
+                    caption_parts = [f"📂 **Dept:** {dept_val}", f"📚 **Semester:** {sem_val}", f"📅 **Year:** `{year_val}`"]
+                    if ug_pg_col and ug_pg_col in row and pd.notna(row[ug_pg_col]):
+                        caption_parts.append(f"🎓 **Level:** {row[ug_pg_col]}")
+                    if ccf_cbcs_col and ccf_cbcs_col in row and pd.notna(row[ccf_cbcs_col]):
+                        caption_parts.append(f"⚙️ **System:** {row[ccf_cbcs_col]}")
+                    if course_struct_col and course_struct_col in row and pd.notna(row[course_struct_col]):
+                        caption_parts.append(f"📖 **Structure:** {row[course_struct_col]}")
+                    st.caption(" | ".join(caption_parts))
+                    
+                    if pd.notna(file_link) and str(file_link).startswith("http"):
+                        st.markdown(f"🔗 [📥 Open External Document Link]({file_link})")
+                        
+                        with st.expander("👁️ Preview Document Inside App"):
+                            embed_url = get_embeddable_url(str(file_link))
+                            st.markdown(
+                                f'<iframe src="{embed_url}" width="100%" height="500px" style="border: none; border-radius: 8px;"></iframe>',
+                                unsafe_allow_html=True
+                            )
+                    else:
+                        st.warning("⚠️ No valid file link attached to this record.")
+
+# ==========================================
+# 2. FACULTY UPLOAD PORTAL
+# ==========================================
+elif app_mode == "🔒 Faculty Upload Portal":
+    st.markdown("<h3 style='color: #1E3A8A;'>Faculty Document Upload Portal</h3>", unsafe_allow_html=True)
+    st.markdown("🔒 *Restricted Access: Authorized Department Faculty Only.*")
+    
+    password_input = st.text_input("Enter Faculty Password", type="password")
+    
+    if password_input == "":
+        st.info("ℹ️ Please enter the password provided by the administration to access the upload form.")
+    elif password_input == FACULTY_PASSWORD:
+        st.success("✅ Access Granted! You are authenticated as department faculty.")
+        st.markdown("Use the secure submission link below to upload verified question papers:")
+        st.link_button("📤 Open Secure Faculty Submission Form", GOOGLE_FORM_URL, use_container_width=True)
+    else:
+        st.error("❌ Incorrect password.")
+
+# ==========================================
+# 3. FREQUENTLY ASKED QUESTIONS (FAQS)
+# ==========================================
+elif app_mode == "❓ FAQs":
+    st.markdown("<h3 style='color: #1E3A8A;'>Frequently Asked Questions (FAQs)</h3>", unsafe_allow_html=True)
+    
+    with st.expander("1. How can I search for a specific question paper?"):
+        st.write("Use the multi-row filters in the **Search & Browse Question Bank** tab to filter by Department, Semester, Year, UG/PG, CCF/CBCS, and Course Structure.")
+    
+    with st.expander("2. Can I view PDFs directly without downloading?"):
+        st.write("Yes, click the **👁️ Preview Document Inside App** expander under any paper card.")
+    
+    with st.expander("3. How do faculty upload documents?"):
+        st.write("Go to the **Faculty Upload Portal** and enter the secure department password.")
+
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
+    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
+    "</div>", 
+    unsafe_allow_html=True
+)
