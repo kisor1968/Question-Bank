@@ -24,7 +24,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- GOOGLE SHEET CONFIGURATION ---
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmVbhktPZiOsXXra7mqjElbUVxybeBGAMSqloH3kTrjXe0nziwqfYMf-gU7AjNDI_inkHQHLgZ61ki/pub?gid=1748417763&single=true&output=csv"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-_lVqargGK2c_8W-U9_orAY62PvBY8qPJuj9XC45p68CCmGZg1qaSnNVRPsPowdBbxQMQ-7Qfx3Eu/pub?output=csv"
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/19b_w04j5vIQl1U2SvAfzcqhcVwW_cU6FlYGL5d4qk9U/viewform"
 FACULTY_PASSWORD = "PJC_Faculty@2026"
 
@@ -35,6 +35,16 @@ def load_sheet_data():
     try:
         df = pd.read_csv(SHEET_CSV_URL)
         df = df.dropna(how='all')
+        
+        # Clean column names
+        df.columns = df.columns.str.strip()
+        
+        # Format year column to integer string if it exists to avoid float representation (e.g., 2024.0 -> 2024)
+        year_col_name = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
+        if year_col_name:
+            df[year_col_name] = pd.to_numeric(df[year_col_name], errors='coerce').fillna(0).astype(int).astype(str)
+            df.loc[df[year_col_name] == '0', year_col_name] = "" # Keep blanks blank if invalid
+            
         return df
     except Exception:
         return pd.DataFrame()
@@ -67,7 +77,7 @@ with header_col2:
 
 st.markdown("---")
 
-# --- SIDEBAR NAVIGATION (Syllabi Removed) ---
+# --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.radio("Select View:", [
     "🏠 Home & Overview",
@@ -84,10 +94,9 @@ st.sidebar.markdown("""
 3. **Faculty Upload**: Secure login required to upload verified documents.
 """)
 
-# Load and clean data globally
+# Load data globally
 df = load_sheet_data()
 if not df.empty:
-    df.columns = df.columns.str.strip()
     dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
     
     if dept_col and dept_col in df.columns:
