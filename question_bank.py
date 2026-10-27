@@ -73,20 +73,4 @@ with header_col1:
 
 with header_col2:
     st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Academic Repository</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs).</p>", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# --- SIDEBAR NAVIGATION (Syllabi Removed) ---
-st.sidebar.title("Navigation")
-app_mode = st.sidebar.radio("Select View:", [
-    "🏠 Home & Overview",
-    "🔍 Search & Browse Question Bank", 
-    "🔒 Faculty Upload Portal", 
-    "❓ FAQs"
-], index=0)
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("📖 Quick Guide")
-st.sidebar.markdown("""
-1. **
+    st.markdown("<p style='color:
