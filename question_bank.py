@@ -101,7 +101,3 @@ if not df.empty:
     
     if dept_col and dept_col in df.columns:
         df = df[df[dept_col].notna() & (df[dept_col].astype(str).str.strip() != "")]
-
-    total_qp = len(df)
-    total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
-else:
