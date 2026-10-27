@@ -73,4 +73,50 @@ with header_col1:
 
 with header_col2:
     st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Academic Repository</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color:
+    st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs).</p>", unsafe_allow_html=True)
+
+st.markdown("---")
+
+# --- SIDEBAR NAVIGATION (Syllabi Removed) ---
+st.sidebar.title("Navigation")
+app_mode = st.sidebar.radio("Select View:", [
+    "🏠 Home & Overview",
+    "🔍 Search & Browse Question Bank", 
+    "🔒 Faculty Upload Portal", 
+    "❓ FAQs"
+], index=0)
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("📖 Quick Guide")
+st.sidebar.markdown("""
+1. **Explore Home**: Check live repository metrics and recent additions.
+2. **Search**: Filter question papers by department and curriculum.
+3. **Faculty Upload**: Secure login required to upload verified documents.
+""")
+
+# Load data globally and map column names safely
+df = load_sheet_data()
+if not df.empty:
+    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+    sem_col = next((col for col in df.columns if any(k in col.lower() for k in ['sem', 'semester'])), None)
+    year_col = next((col for col in df.columns if any(k in col.lower() for k in ['year', 'exam'])), None)
+    ug_pg_col = next((col for col in df.columns if any(k in col.lower() for k in ['ug', 'pg', 'level', 'undergraduate'])), None)
+    ccf_cbcs_col = next((col for col in df.columns if any(k in col.lower() for k in ['ccf', 'cbcs', 'system', 'curriculum'])), None)
+    course_struct_col = next((col for col in df.columns if any(k in col.lower() for k in ['course structure', 'structure', 'programme'])), None)
+
+    total_qp = len(df)
+    total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
+else:
+    total_qp, total_depts = 0, 0
+    dept_col = sem_col = year_col = ug_pg_col = ccf_cbcs_col = course_struct_col = None
+
+# ==========================================
+# 0. HOME & DYNAMIC FRONTAL OVERVIEW
+# ==========================================
+if app_mode == "🏠 Home & Overview":
+    
+    # 1. Stunning Hero Banner
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
+        <p style="font-size:
