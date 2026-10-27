@@ -87,4 +87,6 @@ app_mode = st.sidebar.radio("Select View:", [
 ], index=0)
 
 st.sidebar.markdown("---")
-st.sidebar
+st.sidebar.subheader("📖 Quick Guide")
+st.sidebar.markdown("""
+1. **
