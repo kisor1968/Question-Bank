@@ -64,5 +64,39 @@ def get_embeddable_url(url):
     return url
 
 # --- TOP HEADER WITH LOGO & TITLE ---
-header_col1, header_col2 = st.columns([1, 9], vertical_alignment="center")
-with header_col
+header_col1, header_col2 = st.columns([1, 9])
+with header_col1:
+    try:
+        st.image("logo_pjc.png", width=90)
+    except Exception:
+        st.write("🎓")
+
+with header_col2:
+    st.markdown("<h2 style='color: #1E3A8A; margin-bottom: 0px;'>Prabhu Jagatbandhu College Academic Repository</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #1E3A8A; font-size: 16px; font-weight: 500; margin-top: 5px;'>Centralized repository featuring University Question Papers (PYQs).</p>", unsafe_allow_html=True)
+
+st.markdown("---")
+
+# --- SIDEBAR NAVIGATION (Syllabi Removed) ---
+st.sidebar.title("Navigation")
+app_mode = st.sidebar.radio("Select View:", [
+    "🏠 Home & Overview",
+    "🔍 Search & Browse Question Bank", 
+    "🔒 Faculty Upload Portal", 
+    "❓ FAQs"
+], index=0)
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("📖 Quick Guide")
+st.sidebar.markdown("""
+1. **Explore Home**: Check live repository metrics and recent additions.
+2. **Search**: Filter question papers by department and curriculum.
+3. **Faculty Upload**: Secure login required to upload verified documents.
+""")
+
+# Load and clean data globally
+df = load_sheet_data()
+if not df.empty:
+    dept_col = next((col for col in df.columns if any(k in col.lower() for k in ['dept', 'department'])), None)
+    
+    if dept_col and dept
