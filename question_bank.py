@@ -327,3 +327,13 @@ st.markdown(
     "</div>", 
     unsafe_allow_html=True
 )
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #666666; font-size: 14px;'>
+        © 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b><br><br>
+        <img src="https://api.visitorbadge.io/api/combined?path=pjc_academic_repository_visits&label=Total%20Visitors&countColor=%233B82F6" alt="Visitor Count">
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
