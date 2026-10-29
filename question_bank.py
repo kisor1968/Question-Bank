@@ -320,13 +320,7 @@ elif app_mode == "❓ FAQs":
     with st.expander("3. How do faculty upload documents?"):
         st.write("Go to the **Faculty Upload Portal** and enter the secure department password.")
 
-st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #666666; font-size: 14px;'>"
-    "© 2026 Prabhu Jagatbandhu College &nbsp;|&nbsp; Developed & Maintained by <b>Dr. Kisor Mukhopadhyay</b>"
-    "</div>", 
-    unsafe_allow_html=True
-)
+
 st.markdown("---")
 st.markdown(
     """
