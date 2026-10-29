@@ -96,3 +96,26 @@ if not df.empty:
     total_qp = len(df)
     total_depts = df[dept_col].nunique() if dept_col and dept_col in df.columns else 0
 else:
+    total_qp, total_depts = 0, 0
+    dept_col = None
+
+# ==========================================
+# 0. HOME & DYNAMIC FRONTAL OVERVIEW
+# ==========================================
+if app_mode == "🏠 Home & Overview":
+    
+    # 1. Stunning Hero Banner
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 35px; border-radius: 15px; color: white; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h1 style="color: white; margin-bottom: 10px; font-size: 32px;">Welcome to PJC Academic Repository 🎓</h1>
+        <p style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">
+            Your centralized institutional gateway for Prabhu Jagatbandhu College University Question Papers (PYQs).
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. Metric Cards
+    st.markdown(f"""
+    <div style="display: flex; gap: 15px; margin-bottom: 30px;">
+        <div style="flex: 1; background: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #C7D2FE; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;">
+            <div style="
